@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestore turni settimanali</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root,[data-theme="light"]{
+      --t-sm:clamp(.875rem,.8rem + .35vw,1rem);--t-base:clamp(1rem,.95rem + .25vw,1.125rem);
+      --t-lg:clamp(1.125rem,1rem + .75vw,1.5rem);--t-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+      --sp2:.5rem;--sp3:.75rem;--sp4:1rem;--sp5:1.25rem;--sp6:1.5rem;--sp8:2rem;--sp12:3rem;
+      --bg:#f7f6f2;--surf:#f9f8f5;--surf2:#fff;--off:#edeae5;--bdr:#d4d1ca;--div:#dcd9d5;
+      --tx:#28251d;--txm:#6f6d66;--txi:#f9f8f4;
+      --pri:#01696f;--prih:#0c4e54;--prhl:#cedcd8;
+      --ok:#437a22;--warn:#964219;--err:#a12c7b;
+      --r-md:.5rem;--r-lg:.75rem;--r-xl:1rem;--r-full:9999px;
+      --sh-sm:0 1px 2px rgba(40,37,29,.06);--sh-md:0 8px 24px rgba(40,37,29,.08);
+      --font:'Satoshi',system-ui,sans-serif;
+    }
+    [data-theme="dark"]{
+      --bg:#171614;--surf:#1c1b19;--surf2:#201f1d;--off:#262421;--bdr:#393836;--div:#302f2d;
+      --tx:#e7e4dd;--txm:#b5b2ab;--txi:#171614;
+      --pri:#4f98a3;--prih:#75b4be;--prhl:#293538;
+      --ok:#7db857;--warn:#d2845f;--err:#d776b3;
+      --sh-sm:0 1px 2px rgba(0,0,0,.24);--sh-md:0 12px 32px rgba(0,0,0,.34);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;font-family:var(--font);font-size:var(--t-base);line-height:1.6;color:var(--tx);background:linear-gradient(160deg,var(--bg) 0%,var(--off) 100%)}
+    button,input,select{font:inherit;color:inherit}table{border-collapse:collapse;width:100%}button{cursor:pointer}
+    .skip{position:absolute;left:var(--sp4);top:-3rem;background:var(--pri);color:var(--txi);padding:var(--sp2) var(--sp4);border-radius:var(--r-md);text-decoration:none;z-index:99}
+    .skip:focus{top:var(--sp4)}
+    .page{max-width:1360px;margin:0 auto;padding:var(--sp6) var(--sp4) var(--sp12);display:grid;gap:var(--sp6)}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:var(--sp4);flex-wrap:wrap}
+    .brand{display:flex;gap:var(--sp3);align-items:center}
+    .logo{width:44px;height:44px;border-radius:var(--r-lg);background:var(--surf2);border:1px solid var(--bdr);display:grid;place-items:center;color:var(--pri);box-shadow:var(--sh-sm);flex-shrink:0}
+    .brand h1{font-size:var(--t-xl);line-height:1.1;letter-spacing:-.03em}
+    .brand p,.txm{color:var(--txm);font-size:var(--t-sm)}
+    .theme-btn{min-width:44px;min-height:44px;border-radius:var(--r-full);border:1px solid var(--bdr);background:var(--surf2);box-shadow:var(--sh-sm);font-size:1.1rem}
+    .layout{display:grid;grid-template-columns:minmax(320px,400px) minmax(0,1fr);gap:var(--sp6);align-items:start}
+    .panel{background:color-mix(in srgb,var(--surf) 90%,transparent);border:1px solid var(--bdr);border-radius:var(--r-xl);box-shadow:var(--sh-md)}
+    .pi{padding:var(--sp5)}
+    .panel h2{font-size:var(--t-lg);margin-bottom:var(--sp2)}
+    .panel-lead{font-size:var(--t-sm);color:var(--txm);margin-bottom:var(--sp5)}
+    .fg,.fld,.emplist{display:grid;gap:var(--sp4)}.fld{gap:var(--sp2)}
+    .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp4)}
+    .fld input,.fld select,.er input,.er select,.cell-sel{min-height:44px;width:100%;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2);padding:0 var(--sp3)}
+    .fld input:focus,.fld select:focus,.er input:focus,.er select:focus,.cell-sel:focus{outline:2px solid var(--pri);outline-offset:2px}
+    .fld label,.er label{font-size:var(--t-sm);font-weight:700}
+    /* Title field highlight */
+    .fld.title-field label{color:var(--pri);display:flex;align-items:center;gap:var(--sp2)}
+    .fld.title-field label::before{content:"✎";font-size:1.1em}
+    .fld.title-field input{border-color:var(--pri);border-width:2px;font-weight:700}
+    .er{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:var(--sp3);align-items:end}
+    .row-rem{min-width:44px;min-height:44px;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2)}
+    .row-rem:hover{background:var(--off)}
+    .ctrl{display:flex;gap:var(--sp3);flex-wrap:wrap;margin-top:var(--sp2)}
+    .btn{min-height:44px;padding:0 var(--sp4);border-radius:var(--r-md);border:1px solid transparent;font-size:var(--t-sm);font-weight:700;display:inline-flex;align-items:center;gap:var(--sp2)}
+    .btn-p{background:var(--pri);color:var(--txi)}.btn-p:hover{background:var(--prih)}
+    .btn-s{background:var(--surf2);border-color:var(--bdr)}.btn-s:hover,.theme-btn:hover{background:var(--off)}
+    .status{min-height:1.4em;font-size:var(--t-sm);margin-top:var(--sp4);color:var(--txm)}
+    .status.e{color:var(--err)}.status.ok{color:var(--ok)}
+    .saved-hd{font-size:var(--t-lg);margin:var(--sp6) 0 var(--sp3)}
+    .saved-list{display:grid;gap:var(--sp3)}
+    .si{display:flex;justify-content:space-between;align-items:center;gap:var(--sp3);padding:var(--sp3);border:1px solid var(--bdr);border-radius:var(--r-lg);background:var(--surf2)}
+    .si-title{font-weight:700;font-size:var(--t-sm)}.si-sub{color:var(--txm);font-size:.8rem}
+    .si-acts{display:flex;gap:var(--sp2);flex-shrink:0}
+    .output-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--sp4);margin-bottom:var(--sp5)}
+    .sheet-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r-xl);overflow:hidden}
+    .sheet-scroll{overflow:auto}
+    /* Sheet title (screen) */
+    .sheet-title{padding:var(--sp4) var(--sp5);border-bottom:1px solid var(--div);background:color-mix(in srgb,var(--prhl) 35%,var(--surf2))}
+    .sheet-title h3{font-size:var(--t-lg);margin-bottom:.2rem}
+    .schedule-table{min-width:1040px}
+    .schedule-table th,.schedule-table td{border-right:1px solid var(--div);border-bottom:1px solid var(--div);padding:var(--sp3);text-align:left;vertical-align:middle}
+    .schedule-table thead th{position:sticky;top:0;background:var(--off);z-index:2;font-size:var(--t-sm);white-space:nowrap}
+    .schedule-table thead th:first-child{position:sticky;left:0;z-index:3}
+    .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
+    .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
+    .cell-sel{min-height:36px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm)}
+    .sp{background:rgba(67,122,34,.13);color:var(--ok)}
+    .sc{background:rgba(150,66,25,.13);color:var(--warn)}
+    .sb{background:rgba(1,105,111,.13);color:var(--pri)}
+    .sd{background:rgba(122,121,116,.12);color:var(--txm)}
+    .legend{display:flex;flex-wrap:wrap;gap:var(--sp2);margin-top:var(--sp4)}
+    .chip{display:inline-flex;align-items:center;padding:.35rem .75rem;border-radius:var(--r-full);font-size:var(--t-sm);font-weight:700}
+    .empty{display:grid;place-items:center;gap:var(--sp3);min-height:280px;padding:var(--sp8);text-align:center;color:var(--txm)}
+    .loader{display:inline-block;width:16px;height:16px;border:2px solid var(--bdr);border-top-color:var(--pri);border-radius:50%;animation:spin .6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Print header (hidden on screen) ── */
+    .print-header{display:none}
+
+    /* ─────────────────────────────────────
+       PRINT STYLES
+    ───────────────────────────────────── */
+    @page{
+      size: A4 landscape;
+      margin: 10mm 8mm;
+    }
+    @media print{
+      /* Hide all UI chrome */
+      .topbar,.ctrl,.status,.legend,
+      .panel:first-child,.output-head,
+      .saved-hd,.saved-list,
+      .sheet-title { display:none !important }
+
+      /* Show print header */
+      .print-header{
+        display:block !important;
+        text-align:center;
+        padding-bottom:6mm;
+        border-bottom:1.5pt solid #aaa;
+        margin-bottom:5mm;
+      }
+      .print-header .ph-title{
+        font-size:16pt;
+        font-weight:700;
+        line-height:1.2;
+        color:#111;
+      }
+      .print-header .ph-sub{
+        font-size:9pt;
+        color:#555;
+        margin-top:2mm;
+      }
+
+      /* Layout */
+      body{background:#fff;color:#000;font-family:'Satoshi',Arial,sans-serif}
+      .page{padding:0;display:block}
+      .layout{display:block}
+      .panel{box-shadow:none;border:none;border-radius:0}
+      .pi{padding:0}
+      .sheet-card{border:none;border-radius:0;overflow:visible}
+      .sheet-scroll{overflow:visible}
+
+      /* Table fits page width, text wraps */
+      .schedule-table{
+        min-width:0 !important;
+        width:100%;
+        table-layout:auto;
+        font-size:7.5pt;
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
+      }
+      .schedule-table th,
+      .schedule-table td{
+        white-space:normal !important;
+        word-break:break-word;
+        padding:3pt 4pt;
+        border:0.5pt solid #bbb;
+        /* remove sticky */
+        position:static !important;
+        background:transparent !important;
+        z-index:auto !important;
+      }
+      .schedule-table thead th{
+        background:#ebebeb !important;
+        font-weight:700;
+        font-size:6.5pt;
+      }
+      .schedule-table tbody th{
+        background:#f5f5f5 !important;
+        font-weight:700;
+        min-width:0 !important;
+        max-width:none !important;
+      }
+      /* Counter columns */
+      .num{
+        background:#f0f7f0 !important;
+        font-weight:700;
+      }
+
+      /* Shift selects: render as plain bold text */
+      .cell-sel{
+        -webkit-appearance:none;
+        appearance:none;
+        border:none !important;
+        background:transparent !important;
+        padding:0 !important;
+        min-height:0 !important;
+        width:auto !important;
+        font-size:7.5pt !important;
+        font-weight:700;
+        pointer-events:none;
+      }
+      /* Keep shift color classes in print */
+      .sp{color:#3a7015 !important}
+      .sc{color:#7a3a10 !important}
+      .sb{color:#005b60 !important}
+      .sd{color:#777 !important}
+    }
+
+    @media(max-width:1024px){.layout{grid-template-columns:1fr}}
+    @media(max-width:640px){.dgrid,.er{grid-template-columns:1fr}.schedule-table{min-width:760px}.pi{padding:var(--sp4)}}
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip">Salta al contenuto</a>
+  <div class="page">
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="10" y="12" width="44" height="40" rx="9"/><path d="M21 24h22M21 32h14M21 40h22"/><line x1="45" y1="18" x2="45" y2="44"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Gestore turni settimanali</h1>
+          <p>Cloudflare Pages + D1 — i turni vengono salvati nel database e restano disponibili ad ogni accesso.</p>
+        </div>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Cambia tema">☼</button>
+    </header>
+
+    <main id="main" class="layout">
+
+      <!-- SIDEBAR: Configurazione -->
+      <section class="panel" aria-labelledby="lbl-config">
+        <div class="pi">
+          <h2 id="lbl-config">Configurazione</h2>
+          <p class="panel-lead">Imposta il periodo, aggiungi i dipendenti e assegna il turno base. Puoi salvare la settimana su D1 e ricaricarla in qualsiasi momento.</p>
+
+          <form id="form" class="fg" novalidate>
+
+            <!-- Titolo (evidenziato) -->
+            <div class="fld title-field">
+              <label for="title">Titolo della tabella</label>
+              <input id="title" type="text" placeholder="Es. Settimana 1 — maggio 2026">
+              <span class="txm" style="font-size:.8rem">Appare come intestazione nella stampa</span>
+            </div>
+
+            <div class="dgrid">
+              <div class="fld"><label for="startDate">Data inizio</label><input id="startDate" type="date" required></div>
+              <div class="fld"><label for="endDate">Data fine</label><input id="endDate" type="date" required></div>
+            </div>
+            <div class="fld">
+              <label>Dipendenti <span class="txm">(2–10)</span></label>
+            </div>
+            <div id="emplist" class="emplist"></div>
+            <div class="ctrl">
+              <button id="addEmp" type="button" class="btn btn-s">+ Dipendente</button>
+              <button type="submit" class="btn btn-p">Genera tabella</button>
+            </div>
+            <div class="ctrl">
+              <button id="saveBtn" type="button" class="btn btn-p">Salva su D1</button>
+              <button id="resetBtn" type="button" class="btn btn-s">Reset</button>
+            </div>
+          </form>
+
+          <div id="status" class="status" role="status" aria-live="polite"></div>
+
+          <h2 class="saved-hd" id="lbl-saved">Turni salvati su D1</h2>
+          <div id="savedList" class="saved-list">
+            <div class="txm" style="font-size:var(--t-sm)">Caricamento…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MAIN: Tabella turni -->
+      <section class="panel" aria-labelledby="lbl-table">
+        <div class="pi">
+          <div class="output-head">
+            <div>
+              <h2 id="lbl-table">Tabella turni</h2>
+              <p class="txm">Modifica le celle direttamente. Se la settimana è salvata, ogni modifica si sincronizza su D1.</p>
+            </div>
+            <div class="ctrl">
+              <button id="refreshBtn" type="button" class="btn btn-s">Aggiorna elenco</button>
+              <button id="printBtn"   type="button" class="btn btn-s">🖨 Stampa / Esporta PDF</button>
+            </div>
+          </div>
+
+          <div class="sheet-card">
+            <div id="sheet" class="sheet-scroll">
+              <div class="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="52" height="52" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h3M13 14h3M8 17h3"/>
+                </svg>
+                <div><strong>Nessun turno generato.</strong><p>Compila il form e premi «Genera tabella».</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="legend" aria-label="Legenda">
+            <span class="chip sp">Pranzo</span>
+            <span class="chip sc">Cena</span>
+            <span class="chip sb">Pranzo e cena</span>
+            <span class="chip sd">Dayoff</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <template id="empTpl">
+    <div class="er">
+      <div class="fld"><label>Nome</label><input type="text" class="emp-name" maxlength="60" placeholder="Es. Mario Rossi" required></div>
+      <div class="fld"><label>Turno base</label>
+        <select class="emp-shift">
+          <option>Pranzo</option><option>Cena</option><option>Pranzo e cena</option><option>Dayoff</option>
+        </select>
+      </div>
+      <button type="button" class="row-rem" aria-label="Rimuovi dipendente">✕</button>
+    </div>
+  </template>
+
+  <script>
+  (() => {
+    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff'];
+    const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd' };
+
+    let savedScheduleId = null;
+    let shiftIdMap      = {};
+
+    const $ = id => document.getElementById(id);
+    const form       = $('form');
+    const empList    = $('emplist');
+    const empTpl     = $('empTpl');
+    const statusEl   = $('status');
+    const sheetEl    = $('sheet');
+    const savedEl    = $('savedList');
+    const themeBtn   = $('themeBtn');
+    const root       = document.documentElement;
+
+    /* ── Theme ── */
+    const setTheme = t => {
+      root.setAttribute('data-theme', t);
+      themeBtn.textContent = t === 'dark' ? '☾' : '☼';
+      themeBtn.setAttribute('aria-label', t === 'dark' ? 'Modalità chiara' : 'Modalità scura');
+    };
+    setTheme(matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+    themeBtn.addEventListener('click', () =>
+      setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+    const setStatus = (msg, cls = '') => {
+      statusEl.textContent = msg;
+      statusEl.className = 'status' + (cls ? ` ${cls}` : '');
+    };
+
+    /* ── Date helpers ── */
+    const parseDate = v => { const d = new Date(v + 'T00:00:00'); return isNaN(d) ? null : d; };
+    const fmt   = d => new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+    const iso   = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    const range = (s, e) => {
+      const dates = []; const c = new Date(s);
+      while (c <= e) { dates.push(new Date(c)); c.setDate(c.getDate()+1); }
+      return dates;
+    };
+    const todayIT = () => new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'long',year:'numeric'}).format(new Date());
+
+    /* ── Employees ── */
+    const addEmp = (name = '', shift = 'Pranzo') => {
+      if (empList.children.length >= 10) return setStatus('Massimo 10 dipendenti.','e');
+      const node = empTpl.content.firstElementChild.cloneNode(true);
+      node.querySelector('.emp-name').value  = name;
+      node.querySelector('.emp-shift').value = shift;
+      node.querySelector('.row-rem').addEventListener('click', () => {
+        if (empList.children.length <= 2) return setStatus('Servono almeno 2 dipendenti.','e');
+        node.remove(); setStatus('');
+      });
+      empList.appendChild(node);
+    };
+    const resetEmps = () => { empList.innerHTML = ''; addEmp('','Pranzo'); addEmp('','Cena'); };
+    const collectEmps = () =>
+      [...empList.querySelectorAll('.er')].map(r => ({
+        name:  r.querySelector('.emp-name').value.trim(),
+        shift: r.querySelector('.emp-shift').value,
+      }));
+
+    /* ── Validation ── */
+    const validate = (s, e, emps) => {
+      if (!s || !e)          return 'Inserisci entrambe le date.';
+      if (e < s)             return 'La data finale deve essere uguale o successiva a quella iniziale.';
+      if (emps.length < 2)   return 'Servono almeno 2 dipendenti.';
+      if (emps.length > 10)  return 'Massimo 10 dipendenti.';
+      if (emps.some(emp => !emp.name)) return 'Ogni dipendente deve avere un nome.';
+      const ns = emps.map(e => e.name.toLowerCase());
+      if (new Set(ns).size !== ns.length) return 'I nomi dei dipendenti devono essere univoci.';
+      if (range(s,e).length > 14) return 'Periodo massimo: 14 giorni.';
+      return '';
+    };
+
+    /* ── Payload ── */
+    const buildPayload = () => {
+      const s    = parseDate($('startDate').value);
+      const e    = parseDate($('endDate').value);
+      const emps = collectEmps();
+      const err  = validate(s, e, emps);
+      if (err) { setStatus(err,'e'); return null; }
+      const dates = range(s,e).map(iso);
+      return {
+        title:      $('title').value.trim(),
+        week_start: iso(s),
+        week_end:   iso(e),
+        employees:  emps.map(emp => ({
+          name:   emp.name,
+          shifts: Object.fromEntries(dates.map(d => [d, emp.shift])),
+        })),
+      };
+    };
+
+    /* ── Shift select ── */
+    const makeSelect = (value, shiftId) => {
+      const s = document.createElement('select');
+      s.className = 'cell-sel';
+      if (shiftId) s.dataset.sid = shiftId;
+      SHIFTS.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt; if (opt === value) o.selected = true;
+        s.appendChild(o);
+      });
+      applyShiftCls(s);
+      return s;
+    };
+    const applyShiftCls = el => {
+      el.classList.remove('sp','sc','sb','sd');
+      el.classList.add(CLS[el.value] || 'sd');
+    };
+
+    /* ── Render table ── */
+    const renderTable = (payload, sidMap = {}) => {
+      const s     = parseDate(payload.week_start);
+      const e     = parseDate(payload.week_end);
+      const dates = range(s, e);
+      const label = payload.title || `Turni dal ${fmt(s)} al ${fmt(e)}`;
+
+      const wrap = document.createElement('div');
+
+      /* ── Print header (invisible on screen, visible in print) ── */
+      const ph = document.createElement('div');
+      ph.className = 'print-header';
+      ph.innerHTML = `
+        <div class="ph-title">${label}</div>
+        <div class="ph-sub">Dal ${fmt(s)} al ${fmt(e)} &nbsp;·&nbsp; ${dates.length} giorn${dates.length===1?'o':'i'} &nbsp;·&nbsp; Stampato il ${todayIT()}</div>
+      `;
+      wrap.appendChild(ph);
+
+      /* ── Screen header ── */
+      const hd = document.createElement('div');
+      hd.className = 'sheet-title';
+      hd.innerHTML = `<h3>${label}</h3><p class="txm">Dal ${fmt(s)} al ${fmt(e)} — ${dates.length} giorn${dates.length===1?'o':'i'}</p>`;
+      wrap.appendChild(hd);
+
+      /* ── Table ── */
+      const tbl = document.createElement('table');
+      tbl.className = 'schedule-table';
+      tbl.setAttribute('aria-label', label);
+
+      const thead = tbl.createTHead();
+      const hr    = thead.insertRow();
+      ['Dipendente',
+       ...dates.map(d=>`${DAYS_IT[d.getDay()]}<br><span style="font-weight:400">${fmt(d)}</span>`),
+       'Totale<br>pranzi ☀', 'Totale<br>cene 🌙']
+        .forEach((text,i) => {
+          const th = document.createElement('th');
+          th.innerHTML = text;
+          if (i === hr.cells.length) th.className = 'num';
+          hr.appendChild(th);
+        });
+
+      const tbody = tbl.createTBody();
+      payload.employees.forEach(emp => {
+        const tr = tbody.insertRow();
+        const th = document.createElement('th'); th.textContent = emp.name; tr.appendChild(th);
+
+        const lCell = tr.insertCell(); lCell.className = 'num';
+        const dCell = tr.insertCell(); dCell.className = 'num';
+        const selects = [];
+
+        dates.forEach(d => {
+          const dateKey = iso(d);
+          const td  = tr.insertCell();
+          const sid = sidMap[emp.name]?.[dateKey] ?? null;
+          const val = emp.shifts[dateKey] || 'Dayoff';
+          const sel = makeSelect(val, sid);
+          sel.addEventListener('change', async () => {
+            applyShiftCls(sel); recalc();
+            if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
+          });
+          selects.push(sel); td.appendChild(sel);
+        });
+
+        const recalc = () => {
+          let p = 0, c = 0;
+          selects.forEach(s => {
+            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena') p++;
+            if (s.value === 'Cena'   || s.value === 'Pranzo e cena') c++;
+          });
+          lCell.textContent = p; dCell.textContent = c;
+        };
+        recalc();
+      });
+
+      tbl.appendChild(tbody);
+      wrap.appendChild(tbl);
+      sheetEl.innerHTML = '';
+      sheetEl.appendChild(wrap);
+    };
+
+    /* ── API: update single shift ── */
+    const pushShift = async sel => {
+      try {
+        const r = await fetch(`/api/shifts/${sel.dataset.sid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shift_type: sel.value }),
+        });
+        if (!r.ok) throw new Error((await r.json()).error || 'Errore aggiornamento.');
+        setStatus('Turno aggiornato su D1.', 'ok');
+      } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── API: save new schedule ── */
+    const saveSchedule = async () => {
+      const payload = buildPayload();
+      if (!payload) return;
+      setStatus('Salvataggio in corso…');
+      try {
+        const r = await fetch('/api/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Errore salvataggio.');
+        savedScheduleId = data.id;
+        shiftIdMap      = data.shiftMap || {};
+        renderTable(payload, shiftIdMap);
+        setStatus('Settimana salvata su Cloudflare D1.', 'ok');
+        fetchSaved();
+      } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── API: fetch saved list ── */
+    const fetchSaved = async () => {
+      savedEl.innerHTML = '<div class="txm" style="font-size:var(--t-sm)"><span class="loader"></span> Caricamento…</div>';
+      try {
+        const r    = await fetch('/api/schedules');
+        const data = await r.json();
+        if (!data.schedules?.length) {
+          savedEl.innerHTML = '<div class="txm" style="font-size:var(--t-sm)">Nessun turno salvato ancora.</div>';
+          return;
+        }
+        savedEl.innerHTML = '';
+        data.schedules.forEach(item => {
+          const el = document.createElement('div'); el.className = 'si';
+          el.innerHTML = `
+            <div>
+              <div class="si-title">${item.title}</div>
+              <div class="si-sub">${item.week_start} → ${item.week_end}</div>
+            </div>`;
+          const acts = document.createElement('div'); acts.className = 'si-acts';
+          const openBtn = document.createElement('button'); openBtn.className='btn btn-s'; openBtn.textContent='Apri'; openBtn.style.minHeight='36px';
+          const delBtn  = document.createElement('button'); delBtn.className='btn btn-s'; delBtn.textContent='Elimina'; delBtn.style.minHeight='36px';
+          openBtn.addEventListener('click', () => loadSchedule(item.id));
+          delBtn.addEventListener('click',  () => deleteSchedule(item.id));
+          acts.append(openBtn, delBtn); el.appendChild(acts); savedEl.appendChild(el);
+        });
+      } catch {
+        savedEl.innerHTML = '<div class="txm" style="font-size:var(--t-sm)">Impossibile connettersi a D1.</div>';
+      }
+    };
+
+    /* ── API: load schedule ── */
+    const loadSchedule = async id => {
+      setStatus('Caricamento da D1…');
+      try {
+        const r    = await fetch(`/api/schedules/${id}`);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Errore caricamento.');
+        savedScheduleId = id; shiftIdMap = {};
+
+        const payload = {
+          title:      data.schedule.title,
+          week_start: data.schedule.week_start,
+          week_end:   data.schedule.week_end,
+          employees:  [],
+        };
+        data.employees.forEach(emp => {
+          const shifts = {};
+          shiftIdMap[emp.name] = {};
+          Object.entries(emp.shifts).forEach(([date, info]) => {
+            shifts[date] = info.type;
+            shiftIdMap[emp.name][date] = info.id;
+          });
+          payload.employees.push({ name: emp.name, shifts });
+        });
+
+        $('title').value     = data.schedule.title;
+        $('startDate').value = data.schedule.week_start;
+        $('endDate').value   = data.schedule.week_end;
+        empList.innerHTML    = '';
+        const firstShifts    = payload.employees.map(e => Object.values(e.shifts)[0] || 'Pranzo');
+        payload.employees.forEach((emp, i) => addEmp(emp.name, firstShifts[i]));
+        renderTable(payload, shiftIdMap);
+        setStatus('Settimana caricata da D1.', 'ok');
+      } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── API: delete schedule ── */
+    const deleteSchedule = async id => {
+      if (!confirm('Eliminare questo turno da D1?')) return;
+      try {
+        const r = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error((await r.json()).error || 'Errore eliminazione.');
+        if (savedScheduleId === id) savedScheduleId = null;
+        setStatus('Turno eliminato.', 'ok');
+        fetchSaved();
+      } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── Event listeners ── */
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const payload = buildPayload(); if (!payload) return;
+      savedScheduleId = null; shiftIdMap = {};
+      renderTable(payload);
+      setStatus('Tabella generata. Premi «Salva su D1» per renderla persistente.', 'ok');
+    });
+
+    $('addEmp').addEventListener('click', () => addEmp());
+    $('saveBtn').addEventListener('click', saveSchedule);
+    $('resetBtn').addEventListener('click', () => {
+      form.reset(); resetEmps(); savedScheduleId = null; shiftIdMap = {};
+      sheetEl.innerHTML = '<div class="empty"><div><strong>Nessun turno generato.</strong><p>Compila il form e premi «Genera tabella».</p></div></div>';
+      setStatus('Form ripristinato.', 'ok');
+    });
+    $('refreshBtn').addEventListener('click', fetchSaved);
+    $('printBtn').addEventListener('click', () => window.print());
+
+    resetEmps();
+    fetchSaved();
+  })();
+  </script>
+</body>
+</html>

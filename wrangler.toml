@@ -1,0 +1,8 @@
+name = "gestore-turni"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding     = "DB"
+database_name = "gestore-turni-db"
+database_id = "3e361132-2342-4e7a-86a9-244729dbf10f"
