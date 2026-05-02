@@ -192,6 +192,42 @@
       .sd{color:#777 !important}
     }
 
+
+    /* Righe alternate schermo */
+    .schedule-table tbody tr:nth-child(even) th,
+    .schedule-table tbody tr:nth-child(even) td{
+      background:color-mix(in srgb,var(--off) 35%,var(--surf2));
+    }
+
+    /* Bottone ICS nel nome dipendente */
+    .ics-btn{
+      display:block;
+      margin-top:var(--sp2);
+      padding:.25rem .6rem;
+      font-size:.72rem;
+      font-weight:700;
+      border-radius:var(--r-full);
+      border:1px solid var(--bdr);
+      background:var(--surf2);
+      color:var(--pri);
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .ics-btn:hover{background:var(--prhl);border-color:var(--pri)}
+
+    /* In stampa: nascondi bottone ICS, righe alternate con colori reali */
+    @media print{
+      .ics-btn{display:none!important}
+      .schedule-table tbody tr:nth-child(even) th,
+      .schedule-table tbody tr:nth-child(even) td{
+        background:#eef2ee!important;
+      }
+      .schedule-table tbody tr:nth-child(odd) th,
+      .schedule-table tbody tr:nth-child(odd) td{
+        background:#ffffff!important;
+      }
+    }
+
     @media(max-width:1024px){.layout{grid-template-columns:1fr}}
     @media(max-width:640px){.dgrid,.er{grid-template-columns:1fr}.schedule-table{min-width:760px}.pi{padding:var(--sp4)}}
   </style>
@@ -466,7 +502,20 @@
       const tbody = tbl.createTBody();
       payload.employees.forEach(emp => {
         const tr = tbody.insertRow();
-        const th = document.createElement('th'); th.textContent = emp.name; tr.appendChild(th);
+        const th = document.createElement('th');
+        th.textContent = emp.name;
+        const icsBtn = document.createElement('button');
+        icsBtn.className = 'ics-btn';
+        icsBtn.type = 'button';
+        icsBtn.textContent = '📅 Aggiungi al calendario';
+        // Snapshot degli shifts attuali al click (legge i select live)
+        icsBtn.addEventListener('click', () => {
+          const liveShifts = {};
+          dates.forEach((d, i) => { liveShifts[iso(d)] = selects[i]?.value || 'Dayoff'; });
+          downloadICS(emp.name, liveShifts);
+        });
+        th.appendChild(icsBtn);
+        tr.appendChild(th);
 
         const selects = [];
 
@@ -613,6 +662,52 @@
         setStatus('Turno eliminato.', 'ok');
         fetchSaved();
       } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── iCalendar export ── */
+    const ICS_TIMES = {
+      'Pranzo':        [{ s:'113000', e:'150000', label:'Turno Pranzo 🍽' }],
+      'Cena':          [{ s:'180000', e:'233000', label:'Turno Cena 🌙' }],
+      'Pranzo e cena': [{ s:'113000', e:'150000', label:'Turno Pranzo 🍽' },
+                        { s:'180000', e:'233000', label:'Turno Cena 🌙' }],
+    };
+
+    const generateICS = (empName, shifts) => {
+      const lines = [
+        'BEGIN:VCALENDAR','VERSION:2.0',
+        'PRODID:-//Gestore Turni Settimanali//IT',
+        'CALSCALE:GREGORIAN','METHOD:PUBLISH',
+      ];
+      Object.entries(shifts).forEach(([date, type]) => {
+        if (type === 'Dayoff' || !ICS_TIMES[type]) return;
+        const d = date.replace(/-/g,'');
+        ICS_TIMES[type].forEach(ev => {
+          const uid = `${d}${ev.s}-${empName.replace(/\W/g,'')}@gestoreturni`;
+          lines.push(
+            'BEGIN:VEVENT',
+            `DTSTART;TZID=Europe/Rome:${d}T${ev.s}`,
+            `DTEND;TZID=Europe/Rome:${d}T${ev.e}`,
+            `SUMMARY:${ev.label} — ${empName}`,
+            `DESCRIPTION:${type}`,
+            `UID:${uid}`,
+            'STATUS:CONFIRMED',
+            'END:VEVENT'
+          );
+        });
+      });
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    };
+
+    const downloadICS = (empName, shifts) => {
+      const ics  = generateICS(empName, shifts);
+      const blob = new Blob([ics], { type:'text/calendar;charset=utf-8' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `turni-${empName.replace(/\s+/g,'-').toLowerCase()}.ics`;
+      a.click();
+      URL.revokeObjectURL(url);
     };
 
     /* ── Event listeners ── */
