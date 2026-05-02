@@ -459,7 +459,7 @@
         .forEach((text,i) => {
           const th = document.createElement('th');
           th.innerHTML = text;
-          if (i === hr.cells.length) th.className = 'num';
+          if (i > dates.length) th.className = 'num';
           hr.appendChild(th);
         });
 
@@ -468,8 +468,6 @@
         const tr = tbody.insertRow();
         const th = document.createElement('th'); th.textContent = emp.name; tr.appendChild(th);
 
-        const lCell = tr.insertCell(); lCell.className = 'num';
-        const dCell = tr.insertCell(); dCell.className = 'num';
         const selects = [];
 
         dates.forEach(d => {
@@ -484,6 +482,9 @@
           });
           selects.push(sel); td.appendChild(sel);
         });
+
+        const lCell = tr.insertCell(); lCell.className = 'num';
+        const dCell = tr.insertCell(); dCell.className = 'num';
 
         const recalc = () => {
           let p = 0, c = 0;
