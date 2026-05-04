@@ -193,6 +193,12 @@
     }
 
 
+    /* Share box */
+    .share-box{margin-top:var(--sp4);padding:var(--sp4);background:color-mix(in srgb,var(--prhl) 40%,var(--surf2));border:1px solid var(--pri);border-radius:var(--r-lg);display:grid;gap:var(--sp3)}
+    .share-label{font-size:var(--t-sm);font-weight:700;color:var(--pri)}
+    .share-url{font-size:.78rem;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r-md);padding:var(--sp2) var(--sp3);word-break:break-all;font-family:monospace;color:var(--tx)}
+    .share-actions{display:flex;gap:var(--sp3);flex-wrap:wrap}
+
     /* Righe alternate schermo */
     .schedule-table tbody tr:nth-child(even) th,
     .schedule-table tbody tr:nth-child(even) td{
@@ -287,6 +293,7 @@
           </form>
 
           <div id="status" class="status" role="status" aria-live="polite"></div>
+          <div id="shareArea"></div>
 
           <h2 class="saved-hd" id="lbl-saved">Turni salvati su D1</h2>
           <div id="savedList" class="saved-list">
@@ -582,6 +589,7 @@
         shiftIdMap      = data.shiftMap || {};
         renderTable(payload, shiftIdMap);
         setStatus('Settimana salvata su Cloudflare D1.', 'ok');
+        showShareLink(data.id);
         fetchSaved();
       } catch (err) { setStatus(err.message, 'e'); }
     };
@@ -607,9 +615,14 @@
           const acts = document.createElement('div'); acts.className = 'si-acts';
           const openBtn = document.createElement('button'); openBtn.className='btn btn-s'; openBtn.textContent='Apri'; openBtn.style.minHeight='36px';
           const delBtn  = document.createElement('button'); delBtn.className='btn btn-s'; delBtn.textContent='Elimina'; delBtn.style.minHeight='36px';
+          const shareBtn = document.createElement('button'); shareBtn.className='btn btn-s'; shareBtn.textContent='🔗'; shareBtn.title='Copia link'; shareBtn.style.minHeight='36px';
+          shareBtn.addEventListener('click', () => {
+            const url = `${window.location.origin}/turni?id=${item.id}`;
+            navigator.clipboard.writeText(url).then(()=>{ shareBtn.textContent='✓'; setTimeout(()=>shareBtn.textContent='🔗',2000); });
+          });
           openBtn.addEventListener('click', () => loadSchedule(item.id));
           delBtn.addEventListener('click',  () => deleteSchedule(item.id));
-          acts.append(openBtn, delBtn); el.appendChild(acts); savedEl.appendChild(el);
+          acts.append(shareBtn, openBtn, delBtn); el.appendChild(acts); savedEl.appendChild(el);
         });
       } catch {
         savedEl.innerHTML = '<div class="txm" style="font-size:var(--t-sm)">Impossibile connettersi a D1.</div>';
@@ -649,6 +662,7 @@
         payload.employees.forEach((emp, i) => addEmp(emp.name, firstShifts[i]));
         renderTable(payload, shiftIdMap);
         setStatus('Settimana caricata da D1.', 'ok');
+        showShareLink(id);
       } catch (err) { setStatus(err.message, 'e'); }
     };
 
@@ -662,6 +676,25 @@
         setStatus('Turno eliminato.', 'ok');
         fetchSaved();
       } catch (err) { setStatus(err.message, 'e'); }
+    };
+
+    /* ── Share link ── */
+    const shareArea = $('shareArea');
+
+    const showShareLink = (id) => {
+      const url = `${window.location.origin}/turni?id=${id}`;
+      shareArea.innerHTML = `
+        <div class="share-box">
+          <div class="share-label">🔗 Link da mandare ai dipendenti</div>
+          <code class="share-url">${url}</code>
+          <div class="share-actions">
+            <button class="btn btn-s" style="min-height:36px" id="copyLinkBtn">Copia link</button>
+            <a class="btn btn-s" style="min-height:36px" href="${url}" target="_blank" rel="noopener">Apri anteprima</a>
+          </div>
+        </div>`;
+      $('copyLinkBtn').addEventListener('click', function() {
+        navigator.clipboard.writeText(url).then(() => { this.textContent = '✓ Copiato!'; setTimeout(()=>this.textContent='Copia link',2000); });
+      });
     };
 
     /* ── iCalendar export ── */
@@ -695,6 +728,21 @@
           );
         });
       });
+      // Aggiungi evento speciale con link alla tabella online (solo se savedScheduleId disponibile)
+      if (savedScheduleId) {
+        const pageUrl = `${window.location.origin}/turni?id=${savedScheduleId}`;
+        lines.push(
+          'BEGIN:VEVENT',
+          `DTSTART;VALUE=DATE:${Object.keys(shifts)[0].replace(/-/g,'')}`,
+          `DTEND;VALUE=DATE:${Object.keys(shifts)[0].replace(/-/g,'')}`,
+          `SUMMARY:📋 Turni completi online`,
+          `DESCRIPTION:Visualizza la tabella turni completa su: ${pageUrl}`,
+          `URL:${pageUrl}`,
+          `UID:link-${savedScheduleId}-${empName.replace(/\W/g,'')}@gestoreturni`,
+          'STATUS:CONFIRMED',
+          'END:VEVENT'
+        );
+      }
       lines.push('END:VCALENDAR');
       return lines.join('\r\n');
     };
