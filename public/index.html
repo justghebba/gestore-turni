@@ -194,9 +194,11 @@
 
 
     /* Share box */
-    .share-box{margin-top:var(--sp4);padding:var(--sp4);background:color-mix(in srgb,var(--prhl) 40%,var(--surf2));border:1px solid var(--pri);border-radius:var(--r-lg);display:grid;gap:var(--sp3)}
-    .share-label{font-size:var(--t-sm);font-weight:700;color:var(--pri)}
-    .share-url{font-size:.78rem;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r-md);padding:var(--sp2) var(--sp3);word-break:break-all;font-family:monospace;color:var(--tx)}
+    #shareArea{scroll-margin-top:var(--sp4)}
+    .share-box{margin-top:var(--sp4);padding:var(--sp5);background:color-mix(in srgb,var(--prhl) 55%,var(--surf2));border:2px solid var(--pri);border-radius:var(--r-lg);display:grid;gap:var(--sp3);animation:fadeIn .35s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .share-label{font-size:var(--t-base);font-weight:700;color:var(--pri)}
+    .share-url{font-size:.82rem;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r-md);padding:var(--sp3);word-break:break-all;font-family:monospace;color:var(--tx);line-height:1.5}
     .share-actions{display:flex;gap:var(--sp3);flex-wrap:wrap}
 
     /* Righe alternate schermo */
@@ -695,6 +697,8 @@
       $('copyLinkBtn').addEventListener('click', function() {
         navigator.clipboard.writeText(url).then(() => { this.textContent = '✓ Copiato!'; setTimeout(()=>this.textContent='Copia link',2000); });
       });
+      // Scroll automatico al box del link
+      setTimeout(() => shareArea.scrollIntoView({ behavior:'smooth', block:'nearest' }), 100);
     };
 
     /* ── iCalendar export ── */
@@ -764,7 +768,8 @@
       const payload = buildPayload(); if (!payload) return;
       savedScheduleId = null; shiftIdMap = {};
       renderTable(payload);
-      setStatus('Tabella generata. Premi «Salva su D1» per renderla persistente.', 'ok');
+      setStatus('Tabella generata. Premi «Salva su D1» per ottenere il link da condividere con i dipendenti.', 'ok');
+      shareArea.innerHTML = '';
     });
 
     $('addEmp').addEventListener('click', () => addEmp());
