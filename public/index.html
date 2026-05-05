@@ -400,6 +400,7 @@
     const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa' };
 
     let savedScheduleId = null;
+    let getLivePayload   = null;  // set by renderTable, reads live cell values
     let shiftIdMap      = {};
 
     const $ = id => document.getElementById(id);
@@ -574,9 +575,10 @@
         });
 
       const tbody     = tbl.createTBody();
-      const colSelects = dates.map(() => []);
-      const footCells  = [];
-      let   recalcCols = () => {};   // forward ref, assigned after employee loop
+      const colSelects  = dates.map(() => []);
+      const footCells   = [];
+      const empSelectsMap = {};       // { empName: { dateKey: selectEl } }
+      let   recalcCols  = () => {};  // forward ref, assigned after employee loop
 
       payload.employees.forEach(emp => {
         const tr = tbody.insertRow();
@@ -625,6 +627,8 @@
           });
           selects.push(sel);
           colSelects[di].push(sel);
+          if (!empSelectsMap[emp.name]) empSelectsMap[emp.name] = {};
+          empSelectsMap[emp.name][dateKey] = sel;
           td.appendChild(sel);
           td.appendChild(altroInp);
         });
@@ -670,6 +674,23 @@
       };
       recalcCols();
 
+      // Build live payload by reading current table cell values (not form)
+      getLivePayload = () => ({
+        title:      payload.title,
+        week_start: payload.week_start,
+        week_end:   payload.week_end,
+        employees:  payload.employees.map(emp => ({
+          name:   emp.name,
+          shifts: Object.fromEntries(
+            dates.map(d => {
+              const dateKey = iso(d);
+              const sel = empSelectsMap[emp.name]?.[dateKey];
+              return [dateKey, sel ? sel.value : 'Dayoff'];
+            })
+          ),
+        })),
+      });
+
       tbl.appendChild(tbody);
       wrap.appendChild(tbl);
       sheetEl.innerHTML = '';
@@ -691,7 +712,8 @@
 
     /* ── API: save new schedule ── */
     const saveSchedule = async () => {
-      const payload = buildPayload();
+      // If table is already rendered, read live cell values; otherwise use form
+      const payload = getLivePayload ? getLivePayload() : buildPayload();
       if (!payload) return;
       setStatus('Salvataggio in corso…');
       try {
@@ -907,7 +929,7 @@
     $('addEmp').addEventListener('click', () => addEmp());
     $('saveBtn').addEventListener('click', saveSchedule);
     $('resetBtn').addEventListener('click', () => {
-      form.reset(); resetEmps(); savedScheduleId = null; shiftIdMap = {};
+      form.reset(); resetEmps(); savedScheduleId = null; shiftIdMap = {}; getLivePayload = null;
       sheetEl.innerHTML = '<div class="empty"><div><strong>Nessun turno generato.</strong><p>Compila il form e premi «Genera tabella».</p></div></div>';
       setStatus('Form ripristinato.', 'ok');
     });
