@@ -202,10 +202,16 @@
     .share-actions{display:flex;gap:var(--sp3);flex-wrap:wrap}
 
     /* Righe alternate schermo */
+    .schedule-table tbody tr:nth-child(odd) th,
+    .schedule-table tbody tr:nth-child(odd) td{background:var(--surf2)}
     .schedule-table tbody tr:nth-child(even) th,
-    .schedule-table tbody tr:nth-child(even) td{
-      background:color-mix(in srgb,var(--off) 35%,var(--surf2));
-    }
+    .schedule-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--pri) 9%,var(--surf2))}
+
+    /* Altro shift */
+    .sa{background:rgba(120,80,160,.12);color:#7850a0}
+    .altro-input{display:none;margin-top:var(--sp2);width:100%;min-height:36px;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);color:var(--tx)}
+    .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
+    @media print{.altro-input{display:block!important;border:none!important;background:transparent!important;padding:2pt 0!important;font-size:inherit!important}}
 
     /* Bottone ICS nel nome dipendente */
     .ics-btn{
@@ -236,6 +242,19 @@
       }
     }
 
+    /* Full-screen mode */
+    .layout.fullscreen>section:first-child{display:none}
+    .layout.fullscreen{grid-template-columns:1fr}
+    .sheet-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp3);flex-wrap:wrap}
+    .fs-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .85rem;font-size:var(--t-sm);font-weight:700;border-radius:var(--r-full);border:1px solid var(--bdr);background:var(--surf2);color:var(--tx);cursor:pointer;min-height:36px;white-space:nowrap}
+    .fs-btn:hover{background:var(--off)}
+    @media print{.fs-btn{display:none!important}}
+    /* A11y font size */
+    .a11y-ctrl{display:flex;align-items:center;gap:.3rem}
+    .a11y-btn{min-width:36px;min-height:36px;border-radius:var(--r-full);border:1px solid var(--bdr);background:var(--surf2);font-weight:700;font-size:.82rem;cursor:pointer;line-height:1}
+    .a11y-btn:hover{background:var(--off)}
+    @media print{.a11y-ctrl{display:none!important}}
+
     @media(max-width:1024px){.layout{grid-template-columns:1fr}}
     @media(max-width:640px){.dgrid,.er{grid-template-columns:1fr}.schedule-table{min-width:760px}.pi{padding:var(--sp4)}}
   </style>
@@ -256,7 +275,14 @@
           <p>Cloudflare Pages + D1 — i turni vengono salvati nel database e restano disponibili ad ogni accesso.</p>
         </div>
       </div>
-      <button class="theme-btn" id="themeBtn" type="button" aria-label="Cambia tema">☼</button>
+      <div style="display:flex;align-items:center;gap:var(--sp3)">
+        <div class="a11y-ctrl">
+          <button class="a11y-btn" id="fontDec" type="button" title="Riduci testo">A−</button>
+          <button class="a11y-btn" id="fontRst" type="button" title="Testo normale">A</button>
+          <button class="a11y-btn" id="fontInc" type="button" title="Ingrandisci testo">A+</button>
+        </div>
+        <button class="theme-btn" id="themeBtn" type="button" aria-label="Cambia tema">☼</button>
+      </div>
     </header>
 
     <main id="main" class="layout">
@@ -355,9 +381,9 @@
 
   <script>
   (() => {
-    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff'];
+    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro'];
     const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd' };
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa' };
 
     let savedScheduleId = null;
     let shiftIdMap      = {};
@@ -463,7 +489,7 @@
       return s;
     };
     const applyShiftCls = el => {
-      el.classList.remove('sp','sc','sb','sd');
+      el.classList.remove('sp','sc','sb','sd','sa');
       el.classList.add(CLS[el.value] || 'sd');
     };
 
@@ -488,8 +514,24 @@
       /* ── Screen header ── */
       const hd = document.createElement('div');
       hd.className = 'sheet-title';
-      hd.innerHTML = `<h3>${label}</h3><p class="txm">Dal ${fmt(s)} al ${fmt(e)} — ${dates.length} giorn${dates.length===1?'o':'i'}</p>`;
+      const fsBtn = document.createElement('button');
+      fsBtn.type = 'button'; fsBtn.className = 'fs-btn';
+      fsBtn.innerHTML = '⛶ Schermo intero';
+      fsBtn.addEventListener('click', () => {
+        const layout = document.getElementById('main');
+        const isFs = layout.classList.toggle('fullscreen');
+        fsBtn.innerHTML = isFs ? '✕ Esci da schermo intero' : '⛶ Schermo intero';
+        fsBtn.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      });
+      hd.innerHTML = `<div class="sheet-title-row"><div><h3>${label}</h3><p class="txm">Dal ${fmt(s)} al ${fmt(e)} — ${dates.length} giorn${dates.length===1?'o':'i'}</p></div></div>`;
+      hd.querySelector('.sheet-title-row').appendChild(fsBtn);
       wrap.appendChild(hd);
+      // Auto-enter full screen when table is generated
+      const layout = document.getElementById('main');
+      if (!layout.classList.contains('fullscreen')) {
+        layout.classList.add('fullscreen');
+        fsBtn.innerHTML = '✕ Esci da schermo intero';
+      }
 
       /* ── Table ── */
       const tbl = document.createElement('table');
@@ -520,7 +562,13 @@
         // Snapshot degli shifts attuali al click (legge i select live)
         icsBtn.addEventListener('click', () => {
           const liveShifts = {};
-          dates.forEach((d, i) => { liveShifts[iso(d)] = selects[i]?.value || 'Dayoff'; });
+          dates.forEach((d, i) => {
+            const s = selects[i];
+            if (!s) return;
+            liveShifts[iso(d)] = s.value === 'Altro'
+              ? (s.dataset.note ? `Altro: ${s.dataset.note}` : 'Altro')
+              : s.value;
+          });
           downloadICS(emp.name, liveShifts);
         });
         th.appendChild(icsBtn);
@@ -532,13 +580,25 @@
           const dateKey = iso(d);
           const td  = tr.insertCell();
           const sid = sidMap[emp.name]?.[dateKey] ?? null;
-          const val = emp.shifts[dateKey] || 'Dayoff';
-          const sel = makeSelect(val, sid);
+          const rawVal = emp.shifts[dateKey] || 'Dayoff';
+          const val  = (typeof rawVal === 'string' && rawVal.startsWith('Altro')) ? 'Altro' : rawVal;
+          const note = (typeof rawVal === 'string' && rawVal.startsWith('Altro:')) ? rawVal.slice(6).trim() : '';
+          const sel  = makeSelect(val, sid);
+          const altroInp = document.createElement('input');
+          altroInp.type = 'text'; altroInp.className = 'altro-input';
+          altroInp.placeholder = 'Specifica…'; altroInp.value = note;
+          sel.dataset.note = note;
+          altroInp.style.display = val === 'Altro' ? 'block' : 'none';
+          altroInp.addEventListener('input', () => { sel.dataset.note = altroInp.value; });
           sel.addEventListener('change', async () => {
+            altroInp.style.display = sel.value === 'Altro' ? 'block' : 'none';
+            if (sel.value !== 'Altro') { sel.dataset.note = ''; altroInp.value = ''; }
             applyShiftCls(sel); recalc();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
-          selects.push(sel); td.appendChild(sel);
+          selects.push(sel);
+          td.appendChild(sel);
+          td.appendChild(altroInp);
         });
 
         const lCell = tr.insertCell(); lCell.className = 'num';
@@ -680,6 +740,18 @@
       } catch (err) { setStatus(err.message, 'e'); }
     };
 
+    /* ── A11y font size ── */
+    const FONT_STEPS = [80, 90, 100, 112, 125, 140];
+    let fontIdx = parseInt(localStorage.getItem('fontIdx') || '2');
+    const applyFont = () => {
+      document.documentElement.style.fontSize = FONT_STEPS[fontIdx] + '%';
+      localStorage.setItem('fontIdx', fontIdx);
+    };
+    applyFont();
+    $('fontDec').addEventListener('click', () => { if (fontIdx > 0)              { fontIdx--; applyFont(); }});
+    $('fontInc').addEventListener('click', () => { if (fontIdx < FONT_STEPS.length-1) { fontIdx++; applyFont(); }});
+    $('fontRst').addEventListener('click', () => { fontIdx = 2; applyFont(); });
+
     /* ── Share link ── */
     const shareArea = $('shareArea');
 
@@ -716,7 +788,9 @@
         'CALSCALE:GREGORIAN','METHOD:PUBLISH',
       ];
       Object.entries(shifts).forEach(([date, type]) => {
-        if (type === 'Dayoff' || !ICS_TIMES[type]) return;
+        const effectiveType = (typeof type === 'string' && type.startsWith('Altro')) ? 'Dayoff' : type;
+        if (effectiveType === 'Dayoff' || !ICS_TIMES[effectiveType]) return;
+        type = effectiveType;
         const d = date.replace(/-/g,'');
         ICS_TIMES[type].forEach(ev => {
           const uid = `${d}${ev.s}-${empName.replace(/\W/g,'')}@gestoreturni`;
