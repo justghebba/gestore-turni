@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS shifts (
   employee_id INTEGER NOT NULL,
   shift_date  TEXT    NOT NULL,
   shift_type  TEXT    NOT NULL
-    CHECK(shift_type IN ('Pranzo','Cena','Pranzo e cena','Dayoff')),
+    CHECK(shift_type IN ('Pranzo','Cena','Pranzo e cena','Dayoff','Altro')),
   FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
 

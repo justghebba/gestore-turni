@@ -201,6 +201,20 @@
     .share-url{font-size:.82rem;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r-md);padding:var(--sp3);word-break:break-all;font-family:monospace;color:var(--tx);line-height:1.5}
     .share-actions{display:flex;gap:var(--sp3);flex-wrap:wrap}
 
+    /* Tfoot colonne totale giorno */
+    .schedule-table tfoot th,.schedule-table tfoot td{
+      background:color-mix(in srgb,var(--pri) 13%,var(--surf2));
+      border-top:2px solid var(--pri);font-size:var(--t-sm);
+      padding:var(--sp2) var(--sp3);text-align:center;vertical-align:middle;
+    }
+    .schedule-table tfoot th{text-align:left;font-weight:700;color:var(--pri);white-space:nowrap}
+    .fc-p{color:var(--ok);font-weight:700}
+    .fc-c{color:var(--warn);font-weight:700}
+    .fc-sep{color:var(--bdr);margin:0 .2rem}
+    @media print{
+      .schedule-table tfoot th,.schedule-table tfoot td{background:#d4ece8!important;border-top:1.5pt solid #888!important;font-size:7pt!important}
+    }
+
     /* Righe alternate schermo */
     .schedule-table tbody tr:nth-child(odd) th,
     .schedule-table tbody tr:nth-child(odd) td{background:var(--surf2)}
@@ -524,7 +538,16 @@
         fsBtn.scrollIntoView({ behavior:'smooth', block:'nearest' });
       });
       hd.innerHTML = `<div class="sheet-title-row"><div><h3>${label}</h3><p class="txm">Dal ${fmt(s)} al ${fmt(e)} — ${dates.length} giorn${dates.length===1?'o':'i'}</p></div></div>`;
-      hd.querySelector('.sheet-title-row').appendChild(fsBtn);
+      const hdActions = document.createElement('div');
+      hdActions.style.cssText = 'display:flex;gap:var(--sp3);align-items:center;flex-wrap:wrap';
+      const saveInlineBtn = document.createElement('button');
+      saveInlineBtn.type = 'button'; saveInlineBtn.className = 'btn btn-p';
+      saveInlineBtn.style.minHeight = '36px';
+      saveInlineBtn.innerHTML = '💾 Salva su D1';
+      saveInlineBtn.addEventListener('click', () => saveSchedule());
+      hdActions.appendChild(saveInlineBtn);
+      hdActions.appendChild(fsBtn);
+      hd.querySelector('.sheet-title-row').appendChild(hdActions);
       wrap.appendChild(hd);
       // Auto-enter full screen when table is generated
       const layout = document.getElementById('main');
@@ -550,7 +573,11 @@
           hr.appendChild(th);
         });
 
-      const tbody = tbl.createTBody();
+      const tbody     = tbl.createTBody();
+      const colSelects = dates.map(() => []);
+      const footCells  = [];
+      let   recalcCols = () => {};   // forward ref, assigned after employee loop
+
       payload.employees.forEach(emp => {
         const tr = tbody.insertRow();
         const th = document.createElement('th');
@@ -576,7 +603,7 @@
 
         const selects = [];
 
-        dates.forEach(d => {
+        dates.forEach((d, di) => {
           const dateKey = iso(d);
           const td  = tr.insertCell();
           const sid = sidMap[emp.name]?.[dateKey] ?? null;
@@ -593,10 +620,11 @@
           sel.addEventListener('change', async () => {
             altroInp.style.display = sel.value === 'Altro' ? 'block' : 'none';
             if (sel.value !== 'Altro') { sel.dataset.note = ''; altroInp.value = ''; }
-            applyShiftCls(sel); recalc();
+            applyShiftCls(sel); recalc(); recalcCols();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
           selects.push(sel);
+          colSelects[di].push(sel);
           td.appendChild(sel);
           td.appendChild(altroInp);
         });
@@ -614,6 +642,33 @@
         };
         recalc();
       });
+
+      // ── Tfoot: totale dipendenti per giorno ───────────────────────
+      const tfoot = tbl.createTFoot();
+      const ftr   = tfoot.insertRow();
+      const fthn  = document.createElement('th');
+      fthn.textContent = '↕ Per giorno';
+      ftr.appendChild(fthn);
+      dates.forEach(() => {
+        const ftd = ftr.insertCell();
+        ftd.className = 'foot-day';
+        footCells.push(ftd);
+      });
+      ftr.insertCell(); ftr.insertCell(); // placeholder per colonne totali
+
+      recalcCols = () => {
+        dates.forEach((d, di) => {
+          let p = 0, c = 0;
+          colSelects[di].forEach(s => {
+            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena') p++;
+            if (s.value === 'Cena'   || s.value === 'Pranzo e cena') c++;
+          });
+          footCells[di].innerHTML = (p || c)
+            ? `<span class="fc-p">P:${p}</span><span class="fc-sep"> | </span><span class="fc-c">C:${c}</span>`
+            : `<span style="color:var(--txm)">—</span>`;
+        });
+      };
+      recalcCols();
 
       tbl.appendChild(tbody);
       wrap.appendChild(tbl);
@@ -640,8 +695,8 @@
       if (!payload) return;
       setStatus('Salvataggio in corso…');
       try {
-        const r = await fetch('/api/schedules', {
-          method: 'POST',
+        const r = await fetch(savedScheduleId ? `/api/schedules/${savedScheduleId}` : '/api/schedules', {
+          method: savedScheduleId ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
