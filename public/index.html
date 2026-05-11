@@ -936,6 +936,7 @@
     /* ── API: delete schedule ── */
     const deleteSchedule = async id => {
       if (!confirm('Eliminare questo turno da D1?')) return;
+      if (!await requireUnlock()) return;
       try {
         const r = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
         if (!r.ok) throw new Error((await r.json()).error || 'Errore eliminazione.');
