@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- v2.1 -->
 <html lang="it" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -78,11 +78,14 @@
     .schedule-table thead th:first-child{position:sticky;left:0;z-index:3}
     .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
     .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
-    .cell-sel{min-height:36px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm)}
-    .shift-wrap{display:flex;flex-direction:column;gap:3px;min-width:76px}
-    .shift-badge{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);cursor:pointer;width:100%;text-align:center;user-select:none;transition:filter .15s}
-    .shift-badge:hover{filter:brightness(.92)}
-    .shift-wrap .cell-sel{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+    .cell-sel{
+      display:block;width:100%;min-height:34px;border-radius:var(--r-md);
+      border:none;padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);
+      cursor:pointer;text-align:center;text-align-last:center;
+      -webkit-appearance:none;appearance:none;
+    }
+    .cell-sel:focus{outline:2px solid var(--pri);outline-offset:2px}
+    .shift-wrap{display:flex;flex-direction:column;gap:3px;min-width:80px}
     .sp{background:rgba(67,122,34,.13);color:var(--ok)}
     .sc{background:rgba(150,66,25,.13);color:var(--warn)}
     .sb{background:rgba(1,105,111,.13);color:var(--pri)}
@@ -176,16 +179,17 @@
         font-weight:700;
       }
 
-      /* Badge: visible, plain bold — select hidden */
-      .shift-wrap .cell-sel{display:none !important}
-      .shift-badge{
-        display:inline-block !important;
-        border:none !important;background:transparent !important;
-        padding:0 !important;min-height:0 !important;
-        font-size:7.5pt !important;font-weight:700 !important;cursor:default;
+      /* Shift select: render as plain bold text in print */
+      .cell-sel{
+        -webkit-appearance:none !important; appearance:none !important;
+        border:none !important; background:transparent !important;
+        padding:0 !important; min-height:0 !important; width:auto !important;
+        font-size:7.5pt !important; font-weight:700 !important;
+        pointer-events:none; text-align:left !important;
+        text-align-last:left !important;
       }
-      /* Altro: hide badge, show only the note input */
-      td[data-altro="1"] .shift-badge{display:none !important}
+      /* Altro: hide select, show only the note input */
+      td[data-altro="1"] .cell-sel{display:none !important}
       td[data-altro="1"] .altro-input{
         display:block !important;border:none !important;
         background:transparent !important;padding:0 !important;
@@ -235,7 +239,7 @@
     .sr{background:rgba(210,120,0,.13);color:#b05800}
     .altro-input{display:none;margin-top:2px;width:100%;min-height:34px;border-radius:var(--r-md);border:1.5px solid #7850a0;background:rgba(120,80,160,.07);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);font-weight:700;color:#5a2090}
     .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
-    @media print{.altro-input{display:block!important;border:none!important;background:transparent!important;padding:2pt 0!important;font-size:inherit!important}}
+
 
     /* Bottone ICS nel nome dipendente */
     .ics-btn{
@@ -624,70 +628,43 @@
           const note = (typeof rawVal === 'string' && rawVal.startsWith('Altro:')) ? rawVal.slice(6).trim() : '';
           const isAltro = val === 'Altro';
           if (isAltro) td.dataset.altro = '1';
-          // Wrap
           const wrap = document.createElement('div');
           wrap.className = 'shift-wrap';
-          // Visible select (positioned offscreen, opened on badge click)
-          const visSelect = document.createElement('select');
-          visSelect.className = 'cell-sel';
-          if (sid) visSelect.dataset.sid = sid;
-          visSelect.dataset.note = note;
-          SHIFTS.forEach(opt => {
-            const o = document.createElement('option');
-            o.value = opt; o.textContent = opt;
-            if (opt === val) o.selected = true;
-            visSelect.appendChild(o);
-          });
-          // Hidden select keeps the value for legacy code (selects[])
+          // Single visible select — styled as badge via CSS
           const sel = document.createElement('select');
-          sel.style.display = 'none';
+          sel.className = 'cell-sel ' + (CLS[val] || 'sd');
           if (sid) sel.dataset.sid = sid;
           sel.dataset.note = note;
           SHIFTS.forEach(opt => {
             const o = document.createElement('option');
-            o.value = opt; if (opt === val) o.selected = true;
+            o.value = opt; o.textContent = opt;
+            if (opt === val) o.selected = true;
             sel.appendChild(o);
           });
-          // Badge
-          const badge = document.createElement('div');
-          badge.className = 'shift-badge ' + (CLS[val] || 'sd');
-          badge.textContent = val;
-          badge.style.display = isAltro ? 'none' : 'flex';
-          badge.title = 'Clicca per cambiare turno';
-          badge.addEventListener('click', () => { try { visSelect.showPicker(); } catch(e) { visSelect.focus(); visSelect.size = SHIFTS.length; visSelect.style.position='absolute'; visSelect.style.opacity='1'; visSelect.style.pointerEvents='all'; visSelect.style.zIndex='999'; } });
           // Altro input
           const altroInp = document.createElement('input');
           altroInp.type = 'text'; altroInp.className = 'altro-input';
           altroInp.placeholder = 'Descrizione…'; altroInp.value = note;
           altroInp.style.display = isAltro ? 'block' : 'none';
-          altroInp.addEventListener('input', () => {
-            sel.dataset.note = altroInp.value;
-            visSelect.dataset.note = altroInp.value;
-          });
-          // On change: sync everything
-          visSelect.addEventListener('change', async () => {
-            const v = visSelect.value;
-            sel.value = v;
-            badge.textContent = v;
-            badge.className = 'shift-badge ' + (CLS[v] || 'sd');
+          sel.style.display = isAltro ? 'none' : 'block';
+          altroInp.addEventListener('input', () => { sel.dataset.note = altroInp.value; });
+          sel.addEventListener('change', async () => {
+            const v = sel.value;
+            sel.className = 'cell-sel ' + (CLS[v] || 'sd');
             const a = v === 'Altro';
-            badge.style.display = a ? 'none' : 'flex';
+            sel.style.display = a ? 'none' : 'block';
             altroInp.style.display = a ? 'block' : 'none';
             td.dataset.altro = a ? '1' : '';
-            if (!a) { sel.dataset.note = ''; visSelect.dataset.note = ''; altroInp.value = ''; }
-            // Reset select dropdown if was opened as fallback
-            visSelect.size = 1; visSelect.style.position=''; visSelect.style.opacity=''; visSelect.style.pointerEvents=''; visSelect.style.zIndex='';
+            if (!a) { sel.dataset.note = ''; altroInp.value = ''; }
             applyShiftCls(sel); recalc(); recalcCols();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
-          wrap.appendChild(visSelect);
           wrap.appendChild(sel);
-          wrap.appendChild(badge);
           wrap.appendChild(altroInp);
           selects.push(sel);
-          colSelects[di].push(visSelect);
+          colSelects[di].push(sel);
           if (!empSelectsMap[emp.name]) empSelectsMap[emp.name] = {};
-          empSelectsMap[emp.name][dateKey] = visSelect;
+          empSelectsMap[emp.name][dateKey] = sel;
           td.appendChild(wrap);
         });
 
