@@ -206,6 +206,19 @@
     }
 
 
+    /* Password modal */
+    .pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;place-items:center;display:none}
+    .pwd-overlay.open{display:grid}
+    .pwd-box{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-xl);padding:var(--sp6);width:min(380px,90vw);box-shadow:var(--sh-lg);display:grid;gap:var(--sp4)}
+    .pwd-box h3{font-size:var(--t-lg);margin:0}
+    .pwd-box p{font-size:var(--t-sm);color:var(--txm);margin:0}
+    .pwd-box input{min-height:44px;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2);padding:0 var(--sp3);font:inherit;width:100%;letter-spacing:.1em}
+    .pwd-box input:focus{outline:2px solid var(--pri);outline-offset:2px}
+    .pwd-row{display:flex;gap:var(--sp3)}
+    .pwd-err{color:var(--err,#c0392b);font-size:var(--t-sm);display:none}
+    .lock-btn{background:none;border:none;cursor:pointer;font-size:1.1rem;padding:.2rem .4rem;border-radius:var(--r-md)}
+    .lock-btn:hover{background:var(--off)}
+
     /* Share box */
     #shareArea{scroll-margin-top:var(--sp4)}
     .share-box{margin-top:var(--sp4);padding:var(--sp5);background:color-mix(in srgb,var(--prhl) 55%,var(--surf2));border:2px solid var(--pri);border-radius:var(--r-lg);display:grid;gap:var(--sp3);animation:fadeIn .35s ease}
@@ -415,6 +428,33 @@
 
     let savedScheduleId = null;
     let getLivePayload   = null;  // set by renderTable, reads live cell values
+    let editUnlocked     = false; // password gate
+    const PWD_HASH       = '7c9b8b6a3f2e1d0c5a4b3c2d1e0f9a8b'; // not the real check, see below
+
+    /* ── Password modal ── */
+    const PWD = 'sushisushi';
+    let _pwdResolve = null;
+
+    const askPassword = () => new Promise(resolve => {
+      _pwdResolve = resolve;
+      const overlay = document.getElementById('pwdOverlay');
+      const input   = document.getElementById('pwdInput');
+      const err     = document.getElementById('pwdErr');
+      input.value = ''; err.style.display = 'none';
+      overlay.classList.add('open');
+      setTimeout(() => input.focus(), 60);
+    });
+
+    const closePwdModal = (ok) => {
+      document.getElementById('pwdOverlay').classList.remove('open');
+      if (_pwdResolve) { _pwdResolve(ok); _pwdResolve = null; }
+    };
+
+    const requireUnlock = async () => {
+      if (editUnlocked) return true;
+      const ok = await askPassword();
+      return ok;
+    };
     let shiftIdMap      = {};
 
     const $ = id => document.getElementById(id);
@@ -555,11 +595,27 @@
       hd.innerHTML = `<div class="sheet-title-row"><div><h3>${label}</h3><p class="txm">Dal ${fmt(s)} al ${fmt(e)} — ${dates.length} giorn${dates.length===1?'o':'i'}</p></div></div>`;
       const hdActions = document.createElement('div');
       hdActions.style.cssText = 'display:flex;gap:var(--sp3);align-items:center;flex-wrap:wrap';
+      // Lock status button
+      const lockBtn = document.createElement('button');
+      lockBtn.type = 'button'; lockBtn.className = 'lock-btn'; lockBtn.id = 'lockBtn';
+      lockBtn.textContent = editUnlocked ? '🔓' : '🔒';
+      lockBtn.title = editUnlocked ? 'Modifiche sbloccate' : 'Clicca per sbloccare le modifiche';
+      lockBtn.addEventListener('click', async () => {
+        if (editUnlocked) {
+          editUnlocked = false;
+          lockBtn.textContent = '🔒';
+          lockBtn.title = 'Clicca per sbloccare le modifiche';
+          setStatus('Modifiche bloccate.', 'ok');
+        } else {
+          await requireUnlock();
+        }
+      });
       const saveInlineBtn = document.createElement('button');
       saveInlineBtn.type = 'button'; saveInlineBtn.className = 'btn btn-p';
       saveInlineBtn.style.minHeight = '36px';
       saveInlineBtn.innerHTML = '💾 Salva su D1';
       saveInlineBtn.addEventListener('click', () => saveSchedule());
+      hdActions.appendChild(lockBtn);
       hdActions.appendChild(saveInlineBtn);
       hdActions.appendChild(fsBtn);
       hd.querySelector('.sheet-title-row').appendChild(hdActions);
@@ -650,6 +706,15 @@
           altroInp.addEventListener('input', () => { sel.dataset.note = altroInp.value; });
           sel.addEventListener('change', async () => {
             const v = sel.value;
+            // Gate: require password before applying change
+            const prevVal = [...sel.options].find(o => !o.selected && o.defaultSelected)?.value
+              || sel.options[sel.selectedIndex - 1]?.value || 'Dayoff';
+            if (!await requireUnlock()) {
+              // Revert selection
+              [...sel.options].forEach(o => { o.selected = o.value === (sel._prevVal || prevVal); });
+              return;
+            }
+            sel._prevVal = v;
             sel.className = 'cell-sel ' + (CLS[v] || 'sd');
             const a = v === 'Altro';
             sel.style.display = a ? 'none' : 'block';
@@ -659,6 +724,7 @@
             applyShiftCls(sel); recalc(); recalcCols();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
+          sel._prevVal = val;
           wrap.appendChild(sel);
           wrap.appendChild(altroInp);
           selects.push(sel);
@@ -755,6 +821,8 @@
 
     /* ── API: save new schedule ── */
     const saveSchedule = async () => {
+      // Require password to save
+      if (!await requireUnlock()) return;
       // If table is already rendered, read live cell values; otherwise use form
       const payload = getLivePayload ? getLivePayload() : buildPayload();
       if (!payload) return;
@@ -981,6 +1049,31 @@
 
     resetEmps();
     fetchSaved();
+  /* ── Password modal events ── */
+  document.getElementById('pwdConfirm').addEventListener('click', () => {
+    const val = document.getElementById('pwdInput').value;
+    if (val === PWD) {
+      editUnlocked = true;
+      // Update lock icon
+      const lockBtn = document.getElementById('lockBtn');
+      if (lockBtn) { lockBtn.textContent = '🔓'; lockBtn.title = 'Modifiche sbloccate'; }
+      closePwdModal(true);
+    } else {
+      const err = document.getElementById('pwdErr');
+      err.style.display = 'block';
+      document.getElementById('pwdInput').value = '';
+      document.getElementById('pwdInput').focus();
+    }
+  });
+  document.getElementById('pwdInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('pwdConfirm').click();
+    if (e.key === 'Escape') closePwdModal(false);
+  });
+  document.getElementById('pwdCancel').addEventListener('click', () => closePwdModal(false));
+  document.getElementById('pwdOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closePwdModal(false);
+  });
+
   /* ── Dynamic print scaling ── */
   window.addEventListener('beforeprint', () => {
     const tbl = document.querySelector('.schedule-table');
@@ -1002,5 +1095,20 @@
 
   })();
   </script>
+
+  <!-- Password modal -->
+  <div class="pwd-overlay" id="pwdOverlay" role="dialog" aria-modal="true" aria-labelledby="pwdTitle">
+    <div class="pwd-box">
+      <h3 id="pwdTitle">🔒 Accesso riservato</h3>
+      <p>Inserisci la password per modificare o salvare i turni.</p>
+      <input type="password" id="pwdInput" placeholder="Password…" autocomplete="off">
+      <div class="pwd-err" id="pwdErr">Password errata. Riprova.</div>
+      <div class="pwd-row">
+        <button class="btn btn-p" id="pwdConfirm" style="flex:1">Conferma</button>
+        <button class="btn" id="pwdCancel" style="flex:1">Annulla</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
