@@ -79,6 +79,10 @@
     .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
     .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
     .cell-sel{min-height:36px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm)}
+    .shift-wrap{display:flex;flex-direction:column;gap:3px;min-width:76px}
+    .shift-badge{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);cursor:pointer;width:100%;text-align:center;user-select:none;transition:filter .15s}
+    .shift-badge:hover{filter:brightness(.92)}
+    .shift-wrap .cell-sel{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
     .sp{background:rgba(67,122,34,.13);color:var(--ok)}
     .sc{background:rgba(150,66,25,.13);color:var(--warn)}
     .sb{background:rgba(1,105,111,.13);color:var(--pri)}
@@ -172,24 +176,29 @@
         font-weight:700;
       }
 
-      /* Shift selects: render as plain bold text */
-      .cell-sel{
-        -webkit-appearance:none;
-        appearance:none;
-        border:none !important;
-        background:transparent !important;
-        padding:0 !important;
-        min-height:0 !important;
-        width:auto !important;
-        font-size:7.5pt !important;
-        font-weight:700;
-        pointer-events:none;
+      /* Badge: visible, plain bold — select hidden */
+      .shift-wrap .cell-sel{display:none !important}
+      .shift-badge{
+        display:inline-block !important;
+        border:none !important;background:transparent !important;
+        padding:0 !important;min-height:0 !important;
+        font-size:7.5pt !important;font-weight:700 !important;cursor:default;
+      }
+      /* Altro: hide badge, show only the note input */
+      td[data-altro="1"] .shift-badge{display:none !important}
+      td[data-altro="1"] .altro-input{
+        display:block !important;border:none !important;
+        background:transparent !important;padding:0 !important;
+        font-size:7.5pt !important;font-weight:700 !important;
+        color:#5a2090 !important;min-height:0 !important;pointer-events:none;
       }
       /* Keep shift color classes in print */
       .sp{color:#3a7015 !important}
       .sc{color:#7a3a10 !important}
       .sb{color:#005b60 !important}
       .sd{color:#777 !important}
+      .sa{color:#5a2090 !important}
+      .sr{color:#b05800 !important}
     }
 
 
@@ -223,7 +232,8 @@
 
     /* Altro shift */
     .sa{background:rgba(120,80,160,.12);color:#7850a0}
-    .altro-input{display:none;margin-top:var(--sp2);width:100%;min-height:36px;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);color:var(--tx)}
+    .sr{background:rgba(210,120,0,.13);color:#b05800}
+    .altro-input{display:none;margin-top:2px;width:100%;min-height:34px;border-radius:var(--r-md);border:1.5px solid #7850a0;background:rgba(120,80,160,.07);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);font-weight:700;color:#5a2090}
     .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
     @media print{.altro-input{display:block!important;border:none!important;background:transparent!important;padding:2pt 0!important;font-size:inherit!important}}
 
@@ -395,9 +405,9 @@
 
   <script>
   (() => {
-    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro'];
+    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro','P 📞','C 📞'];
     const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa' };
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa', 'P 📞':'sr', 'C 📞':'sr' };
 
     let savedScheduleId = null;
     let getLivePayload   = null;  // set by renderTable, reads live cell values
@@ -504,7 +514,7 @@
       return s;
     };
     const applyShiftCls = el => {
-      el.classList.remove('sp','sc','sb','sd','sa');
+      el.classList.remove('sp','sc','sb','sd','sa','sr');
       el.classList.add(CLS[el.value] || 'sd');
     };
 
@@ -612,25 +622,73 @@
           const rawVal = emp.shifts[dateKey] || 'Dayoff';
           const val  = (typeof rawVal === 'string' && rawVal.startsWith('Altro')) ? 'Altro' : rawVal;
           const note = (typeof rawVal === 'string' && rawVal.startsWith('Altro:')) ? rawVal.slice(6).trim() : '';
-          const sel  = makeSelect(val, sid);
+          const isAltro = val === 'Altro';
+          if (isAltro) td.dataset.altro = '1';
+          // Wrap
+          const wrap = document.createElement('div');
+          wrap.className = 'shift-wrap';
+          // Visible select (positioned offscreen, opened on badge click)
+          const visSelect = document.createElement('select');
+          visSelect.className = 'cell-sel';
+          if (sid) visSelect.dataset.sid = sid;
+          visSelect.dataset.note = note;
+          SHIFTS.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            if (opt === val) o.selected = true;
+            visSelect.appendChild(o);
+          });
+          // Hidden select keeps the value for legacy code (selects[])
+          const sel = document.createElement('select');
+          sel.style.display = 'none';
+          if (sid) sel.dataset.sid = sid;
+          sel.dataset.note = note;
+          SHIFTS.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt; if (opt === val) o.selected = true;
+            sel.appendChild(o);
+          });
+          // Badge
+          const badge = document.createElement('div');
+          badge.className = 'shift-badge ' + (CLS[val] || 'sd');
+          badge.textContent = val;
+          badge.style.display = isAltro ? 'none' : 'flex';
+          badge.title = 'Clicca per cambiare turno';
+          badge.addEventListener('click', () => { try { visSelect.showPicker(); } catch(e) { visSelect.focus(); visSelect.size = SHIFTS.length; visSelect.style.position='absolute'; visSelect.style.opacity='1'; visSelect.style.pointerEvents='all'; visSelect.style.zIndex='999'; } });
+          // Altro input
           const altroInp = document.createElement('input');
           altroInp.type = 'text'; altroInp.className = 'altro-input';
-          altroInp.placeholder = 'Specifica…'; altroInp.value = note;
-          sel.dataset.note = note;
-          altroInp.style.display = val === 'Altro' ? 'block' : 'none';
-          altroInp.addEventListener('input', () => { sel.dataset.note = altroInp.value; });
-          sel.addEventListener('change', async () => {
-            altroInp.style.display = sel.value === 'Altro' ? 'block' : 'none';
-            if (sel.value !== 'Altro') { sel.dataset.note = ''; altroInp.value = ''; }
+          altroInp.placeholder = 'Descrizione…'; altroInp.value = note;
+          altroInp.style.display = isAltro ? 'block' : 'none';
+          altroInp.addEventListener('input', () => {
+            sel.dataset.note = altroInp.value;
+            visSelect.dataset.note = altroInp.value;
+          });
+          // On change: sync everything
+          visSelect.addEventListener('change', async () => {
+            const v = visSelect.value;
+            sel.value = v;
+            badge.textContent = v;
+            badge.className = 'shift-badge ' + (CLS[v] || 'sd');
+            const a = v === 'Altro';
+            badge.style.display = a ? 'none' : 'flex';
+            altroInp.style.display = a ? 'block' : 'none';
+            td.dataset.altro = a ? '1' : '';
+            if (!a) { sel.dataset.note = ''; visSelect.dataset.note = ''; altroInp.value = ''; }
+            // Reset select dropdown if was opened as fallback
+            visSelect.size = 1; visSelect.style.position=''; visSelect.style.opacity=''; visSelect.style.pointerEvents=''; visSelect.style.zIndex='';
             applyShiftCls(sel); recalc(); recalcCols();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
+          wrap.appendChild(visSelect);
+          wrap.appendChild(sel);
+          wrap.appendChild(badge);
+          wrap.appendChild(altroInp);
           selects.push(sel);
-          colSelects[di].push(sel);
+          colSelects[di].push(visSelect);
           if (!empSelectsMap[emp.name]) empSelectsMap[emp.name] = {};
-          empSelectsMap[emp.name][dateKey] = sel;
-          td.appendChild(sel);
-          td.appendChild(altroInp);
+          empSelectsMap[emp.name][dateKey] = visSelect;
+          td.appendChild(wrap);
         });
 
         const lCell = tr.insertCell(); lCell.className = 'num';
@@ -684,8 +742,13 @@
           shifts: Object.fromEntries(
             dates.map(d => {
               const dateKey = iso(d);
-              const sel = empSelectsMap[emp.name]?.[dateKey];
-              return [dateKey, sel ? sel.value : 'Dayoff'];
+              const s = empSelectsMap[emp.name]?.[dateKey];
+              if (!s) return [dateKey, 'Dayoff'];
+              if (s.value === 'Altro') {
+                const note = (s.dataset.note || '').trim();
+                return [dateKey, note ? `Altro: ${note}` : 'Altro'];
+              }
+              return [dateKey, s.value];
             })
           ),
         })),
@@ -700,10 +763,13 @@
     /* ── API: update single shift ── */
     const pushShift = async sel => {
       try {
+        const pushNote = sel.value === 'Altro'
+          ? (sel.dataset.note ? `Altro: ${sel.dataset.note}` : 'Altro')
+          : sel.value;
         const r = await fetch(`/api/shifts/${sel.dataset.sid}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shift_type: sel.value }),
+          body: JSON.stringify({ shift_type: pushNote }),
         });
         if (!r.ok) throw new Error((await r.json()).error || 'Errore aggiornamento.');
         setStatus('Turno aggiornato su D1.', 'ok');
@@ -868,7 +934,7 @@
         'CALSCALE:GREGORIAN','METHOD:PUBLISH',
       ];
       Object.entries(shifts).forEach(([date, type]) => {
-        const effectiveType = (typeof type === 'string' && type.startsWith('Altro')) ? 'Dayoff' : type;
+        const effectiveType = (typeof type==='string' && (type.startsWith('Altro')||type==='P 📞'||type==='C 📞')) ? 'Dayoff' : type;
         if (effectiveType === 'Dayoff' || !ICS_TIMES[effectiveType]) return;
         type = effectiveType;
         const d = date.replace(/-/g,'');
@@ -938,6 +1004,25 @@
 
     resetEmps();
     fetchSaved();
+  /* ── Dynamic print scaling ── */
+  window.addEventListener('beforeprint', () => {
+    const tbl = document.querySelector('.schedule-table');
+    if (!tbl) return;
+    const cols = tbl.querySelector('thead tr')?.cells?.length || 8;
+    const estimatedPx = 130 + (cols - 3) * 92 + 2 * 55;
+    const printWidth  = 1040; // A4 landscape ~270mm @ 96dpi
+    const scale = Math.min(1, printWidth / estimatedPx);
+    tbl.style.transformOrigin = 'top left';
+    tbl.style.transform = scale < 1 ? `scale(${scale.toFixed(3)})` : '';
+    tbl.style.width     = scale < 1 ? `${(100/scale).toFixed(1)}%` : '';
+  });
+  window.addEventListener('afterprint', () => {
+    const tbl = document.querySelector('.schedule-table');
+    if (!tbl) return;
+    tbl.style.transform = '';
+    tbl.style.width     = '';
+  });
+
   })();
   </script>
 </body>
