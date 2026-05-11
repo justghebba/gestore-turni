@@ -78,6 +78,7 @@
     .schedule-table thead th:first-child{position:sticky;left:0;z-index:3}
     .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
     .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
+<<<<<<< HEAD
     .cell-sel{
       display:block;width:100%;min-height:34px;border-radius:var(--r-md);
       border:none;padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);
@@ -86,6 +87,9 @@
     }
     .cell-sel:focus{outline:2px solid var(--pri);outline-offset:2px}
     .shift-wrap{display:flex;flex-direction:column;gap:3px;min-width:80px}
+=======
+    .cell-sel{min-height:36px;border-radius:var(--r-md);padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm)}
+>>>>>>> parent of e7ae43f (v0.2 - improved UI and functionalities)
     .sp{background:rgba(67,122,34,.13);color:var(--ok)}
     .sc{background:rgba(150,66,25,.13);color:var(--warn)}
     .sb{background:rgba(1,105,111,.13);color:var(--pri)}
@@ -179,6 +183,7 @@
         font-weight:700;
       }
 
+<<<<<<< HEAD
       /* Shift select: render as plain bold text in print */
       .cell-sel{
         -webkit-appearance:none !important; appearance:none !important;
@@ -195,14 +200,26 @@
         background:transparent !important;padding:0 !important;
         font-size:7.5pt !important;font-weight:700 !important;
         color:#5a2090 !important;min-height:0 !important;pointer-events:none;
+=======
+      /* Shift selects: render as plain bold text */
+      .cell-sel{
+        -webkit-appearance:none;
+        appearance:none;
+        border:none !important;
+        background:transparent !important;
+        padding:0 !important;
+        min-height:0 !important;
+        width:auto !important;
+        font-size:7.5pt !important;
+        font-weight:700;
+        pointer-events:none;
+>>>>>>> parent of e7ae43f (v0.2 - improved UI and functionalities)
       }
       /* Keep shift color classes in print */
       .sp{color:#3a7015 !important}
       .sc{color:#7a3a10 !important}
       .sb{color:#005b60 !important}
       .sd{color:#777 !important}
-      .sa{color:#5a2090 !important}
-      .sr{color:#b05800 !important}
     }
 
 
@@ -236,8 +253,7 @@
 
     /* Altro shift */
     .sa{background:rgba(120,80,160,.12);color:#7850a0}
-    .sr{background:rgba(210,120,0,.13);color:#b05800}
-    .altro-input{display:none;margin-top:2px;width:100%;min-height:34px;border-radius:var(--r-md);border:1.5px solid #7850a0;background:rgba(120,80,160,.07);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);font-weight:700;color:#5a2090}
+    .altro-input{display:none;margin-top:var(--sp2);width:100%;min-height:36px;border-radius:var(--r-md);border:1px solid var(--bdr);background:var(--surf2);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);color:var(--tx)}
     .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
 
 
@@ -409,9 +425,9 @@
 
   <script>
   (() => {
-    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro','P 📞','C 📞'];
+    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro'];
     const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa', 'P 📞':'sr', 'C 📞':'sr' };
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa' };
 
     let savedScheduleId = null;
     let getLivePayload   = null;  // set by renderTable, reads live cell values
@@ -518,7 +534,7 @@
       return s;
     };
     const applyShiftCls = el => {
-      el.classList.remove('sp','sc','sb','sd','sa','sr');
+      el.classList.remove('sp','sc','sb','sd','sa');
       el.classList.add(CLS[el.value] || 'sd');
     };
 
@@ -626,6 +642,7 @@
           const rawVal = emp.shifts[dateKey] || 'Dayoff';
           const val  = (typeof rawVal === 'string' && rawVal.startsWith('Altro')) ? 'Altro' : rawVal;
           const note = (typeof rawVal === 'string' && rawVal.startsWith('Altro:')) ? rawVal.slice(6).trim() : '';
+<<<<<<< HEAD
           const isAltro = val === 'Altro';
           if (isAltro) td.dataset.altro = '1';
           const wrap = document.createElement('div');
@@ -661,11 +678,31 @@
           });
           wrap.appendChild(sel);
           wrap.appendChild(altroInp);
+=======
+          const sel  = makeSelect(val, sid);
+          const altroInp = document.createElement('input');
+          altroInp.type = 'text'; altroInp.className = 'altro-input';
+          altroInp.placeholder = 'Specifica…'; altroInp.value = note;
+          sel.dataset.note = note;
+          altroInp.style.display = val === 'Altro' ? 'block' : 'none';
+          altroInp.addEventListener('input', () => { sel.dataset.note = altroInp.value; });
+          sel.addEventListener('change', async () => {
+            altroInp.style.display = sel.value === 'Altro' ? 'block' : 'none';
+            if (sel.value !== 'Altro') { sel.dataset.note = ''; altroInp.value = ''; }
+            applyShiftCls(sel); recalc(); recalcCols();
+            if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
+          });
+>>>>>>> parent of e7ae43f (v0.2 - improved UI and functionalities)
           selects.push(sel);
           colSelects[di].push(sel);
           if (!empSelectsMap[emp.name]) empSelectsMap[emp.name] = {};
           empSelectsMap[emp.name][dateKey] = sel;
+<<<<<<< HEAD
           td.appendChild(wrap);
+=======
+          td.appendChild(sel);
+          td.appendChild(altroInp);
+>>>>>>> parent of e7ae43f (v0.2 - improved UI and functionalities)
         });
 
         const lCell = tr.insertCell(); lCell.className = 'num';
@@ -719,13 +756,8 @@
           shifts: Object.fromEntries(
             dates.map(d => {
               const dateKey = iso(d);
-              const s = empSelectsMap[emp.name]?.[dateKey];
-              if (!s) return [dateKey, 'Dayoff'];
-              if (s.value === 'Altro') {
-                const note = (s.dataset.note || '').trim();
-                return [dateKey, note ? `Altro: ${note}` : 'Altro'];
-              }
-              return [dateKey, s.value];
+              const sel = empSelectsMap[emp.name]?.[dateKey];
+              return [dateKey, sel ? sel.value : 'Dayoff'];
             })
           ),
         })),
@@ -740,13 +772,10 @@
     /* ── API: update single shift ── */
     const pushShift = async sel => {
       try {
-        const pushNote = sel.value === 'Altro'
-          ? (sel.dataset.note ? `Altro: ${sel.dataset.note}` : 'Altro')
-          : sel.value;
         const r = await fetch(`/api/shifts/${sel.dataset.sid}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shift_type: pushNote }),
+          body: JSON.stringify({ shift_type: sel.value }),
         });
         if (!r.ok) throw new Error((await r.json()).error || 'Errore aggiornamento.');
         setStatus('Turno aggiornato su D1.', 'ok');
@@ -911,7 +940,7 @@
         'CALSCALE:GREGORIAN','METHOD:PUBLISH',
       ];
       Object.entries(shifts).forEach(([date, type]) => {
-        const effectiveType = (typeof type==='string' && (type.startsWith('Altro')||type==='P 📞'||type==='C 📞')) ? 'Dayoff' : type;
+        const effectiveType = (typeof type === 'string' && type.startsWith('Altro')) ? 'Dayoff' : type;
         if (effectiveType === 'Dayoff' || !ICS_TIMES[effectiveType]) return;
         type = effectiveType;
         const d = date.replace(/-/g,'');
@@ -981,25 +1010,6 @@
 
     resetEmps();
     fetchSaved();
-  /* ── Dynamic print scaling ── */
-  window.addEventListener('beforeprint', () => {
-    const tbl = document.querySelector('.schedule-table');
-    if (!tbl) return;
-    const cols = tbl.querySelector('thead tr')?.cells?.length || 8;
-    const estimatedPx = 130 + (cols - 3) * 92 + 2 * 55;
-    const printWidth  = 1040; // A4 landscape ~270mm @ 96dpi
-    const scale = Math.min(1, printWidth / estimatedPx);
-    tbl.style.transformOrigin = 'top left';
-    tbl.style.transform = scale < 1 ? `scale(${scale.toFixed(3)})` : '';
-    tbl.style.width     = scale < 1 ? `${(100/scale).toFixed(1)}%` : '';
-  });
-  window.addEventListener('afterprint', () => {
-    const tbl = document.querySelector('.schedule-table');
-    if (!tbl) return;
-    tbl.style.transform = '';
-    tbl.style.width     = '';
-  });
-
   })();
   </script>
 </body>

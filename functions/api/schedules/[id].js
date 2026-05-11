@@ -67,8 +67,7 @@ export async function onRequestPut({ params, env, request }) {
 
       for (const [date, type] of Object.entries(emp.shifts)) {
         // Normalizza "Altro: testo" → "Altro" per D1
-        // Approach A: store full string (Altro: testo, P 📞, C 📞)
-        const shiftType = typeof type === 'string' ? type : 'Dayoff';
+        const shiftType = type.startsWith('Altro') ? 'Altro' : type;
 
         // Upsert turno (inserisci o aggiorna se già esiste per quella data)
         const existing = await env.DB.prepare(

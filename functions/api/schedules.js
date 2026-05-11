@@ -35,8 +35,7 @@ export async function onRequestPost({ request, env }) {
       const empId = e.meta.last_row_id;
       shiftMap[emp.name] = {};
       for (const [date, type] of Object.entries(emp.shifts)) {
-        // Approach A: store full string (Altro: testo, P 📞, C 📞 allowed)
-        const shiftType = typeof type === 'string' ? type : 'Dayoff';
+        const shiftType = (typeof type === 'string' && type.startsWith('Altro')) ? 'Altro' : type;
         const s = await env.DB.prepare(
           `INSERT INTO shifts (employee_id, shift_date, shift_type) VALUES (?,?,?)`
         ).bind(empId, date, shiftType).run();
