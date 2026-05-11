@@ -207,8 +207,8 @@
 
 
     /* Password modal */
-    .pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;place-items:center;display:none}
-    .pwd-overlay.open{display:grid}
+    .pwd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center}
+    .pwd-overlay.open{display:flex}
     .pwd-box{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r-xl);padding:var(--sp6);width:min(380px,90vw);box-shadow:var(--sh-lg);display:grid;gap:var(--sp4)}
     .pwd-box h3{font-size:var(--t-lg);margin:0}
     .pwd-box p{font-size:var(--t-sm);color:var(--txm);margin:0}
@@ -301,6 +301,20 @@
   </style>
 </head>
 <body>
+  <!-- Password modal -->
+  <div class="pwd-overlay" id="pwdOverlay" role="dialog" aria-modal="true" aria-labelledby="pwdTitle">
+    <div class="pwd-box">
+      <h3 id="pwdTitle">🔒 Accesso riservato</h3>
+      <p>Inserisci la password per modificare o salvare i turni.</p>
+      <input type="password" id="pwdInput" placeholder="Password…" autocomplete="off">
+      <div class="pwd-err" id="pwdErr">Password errata. Riprova.</div>
+      <div class="pwd-row">
+        <button class="btn btn-p" id="pwdConfirm" style="flex:1">Conferma</button>
+        <button class="btn" id="pwdCancel" style="flex:1">Annulla</button>
+      </div>
+    </div>
+  </div>
+
   <a href="#main" class="skip">Salta al contenuto</a>
   <div class="page">
 
@@ -1095,20 +1109,5 @@
 
   })();
   </script>
-
-  <!-- Password modal -->
-  <div class="pwd-overlay" id="pwdOverlay" role="dialog" aria-modal="true" aria-labelledby="pwdTitle">
-    <div class="pwd-box">
-      <h3 id="pwdTitle">🔒 Accesso riservato</h3>
-      <p>Inserisci la password per modificare o salvare i turni.</p>
-      <input type="password" id="pwdInput" placeholder="Password…" autocomplete="off">
-      <div class="pwd-err" id="pwdErr">Password errata. Riprova.</div>
-      <div class="pwd-row">
-        <button class="btn btn-p" id="pwdConfirm" style="flex:1">Conferma</button>
-        <button class="btn" id="pwdCancel" style="flex:1">Annulla</button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
