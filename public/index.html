@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v2.1 -->
+<!DOCTYPE html><!-- v0.2.5 -->
 <html lang="it" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -884,7 +884,7 @@
           const delBtn  = document.createElement('button'); delBtn.className='btn btn-s'; delBtn.textContent='Elimina'; delBtn.style.minHeight='36px';
           const shareBtn = document.createElement('button'); shareBtn.className='btn btn-s'; shareBtn.textContent='🔗'; shareBtn.title='Copia link'; shareBtn.style.minHeight='36px';
           shareBtn.addEventListener('click', () => {
-            const url = `${window.location.origin}/turni?id=${item.id}`;
+            const url = `${window.location.href.split("?")[0]}?id=${item.id}`;
             navigator.clipboard.writeText(url).then(()=>{ shareBtn.textContent='✓'; setTimeout(()=>shareBtn.textContent='🔗',2000); });
           });
           openBtn.addEventListener('click', () => loadSchedule(item.id));
@@ -961,7 +961,7 @@
     const shareArea = $('shareArea');
 
     const showShareLink = (id) => {
-      const url = `${window.location.origin}/turni?id=${id}`;
+      const url = `${window.location.href.split("?")[0]}?id=${id}`;
       shareArea.innerHTML = `
         <div class="share-box">
           <div class="share-label">🔗 Link da mandare ai dipendenti</div>
@@ -1013,7 +1013,7 @@
       });
       // Aggiungi evento speciale con link alla tabella online (solo se savedScheduleId disponibile)
       if (savedScheduleId) {
-        const pageUrl = `${window.location.origin}/turni?id=${savedScheduleId}`;
+        const pageUrl = `${window.location.href.split("?")[0]}?id=${savedScheduleId}`;
         lines.push(
           'BEGIN:VEVENT',
           `DTSTART;VALUE=DATE:${Object.keys(shifts)[0].replace(/-/g,'')}`,
@@ -1042,8 +1042,9 @@
     };
 
     /* ── Event listeners ── */
-    form.addEventListener('submit', e => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
+      if (!await requireUnlock()) return;
       const payload = buildPayload(); if (!payload) return;
       savedScheduleId = null; shiftIdMap = {};
       renderTable(payload);
@@ -1063,6 +1064,9 @@
 
     resetEmps();
     fetchSaved();
+    // Auto-load schedule from URL param ?id=xxx
+    const _urlId = new URLSearchParams(window.location.search).get('id');
+    if (_urlId) loadSchedule(_urlId);
   /* ── Password modal events ── */
   document.getElementById('pwdConfirm').addEventListener('click', () => {
     const val = document.getElementById('pwdInput').value;
