@@ -74,12 +74,11 @@
     .sheet-title h3{font-size:var(--t-lg);margin-bottom:.2rem}
     .schedule-table{min-width:1040px}
     .schedule-table th,.schedule-table td{border-right:1px solid var(--div);border-bottom:1px solid var(--div);padding:var(--sp3);text-align:left;vertical-align:middle}
-    .schedule-table thead th{position:sticky;top:0;background:var(--off);z-index:2;font-size:var(--t-sm);white-space:nowrap;text-transform:uppercase;font-weight:700;letter-spacing:.03em}
+    .schedule-table thead th{position:sticky;top:0;background:var(--off);z-index:2;font-size:var(--t-sm);white-space:nowrap}
     .schedule-table thead th:first-child{position:sticky;left:0;z-index:3}
-    .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word;text-transform:uppercase;font-weight:700;letter-spacing:.02em}
+    .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
     .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
     .cell-sel{
-      text-transform:uppercase;letter-spacing:.04em;
       display:block;width:100%;min-height:34px;border-radius:var(--r-md);
       border:none;padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);
       cursor:pointer;text-align:center;text-align-last:center;
@@ -191,6 +190,7 @@
       }
       /* Altro: hide select, show only the note input */
       td[data-altro="1"] .cell-sel{display:none !important}
+      td[data-altro="1"] .altro-row{display:flex !important}
       td[data-altro="1"] .altro-input{
         display:block !important;border:none !important;
         background:transparent !important;padding:0 !important;
@@ -204,7 +204,6 @@
       .sd{color:#777 !important}
       .sa{color:#5a2090 !important}
       .sr{color:#b05800 !important}
-      .st{color:#006494 !important}
     }
 
 
@@ -252,8 +251,13 @@
     /* Altro shift */
     .sa{background:rgba(120,80,160,.12);color:#7850a0}
     .sr{background:rgba(210,120,0,.13);color:#b05800}
-    .st{background:rgba(0,100,148,.13);color:#006494}
     .altro-input{display:none;margin-top:2px;width:100%;min-height:34px;border-radius:var(--r-md);border:1.5px solid #7850a0;background:rgba(120,80,160,.07);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);font-weight:700;color:#5a2090}
+    .altro-row{display:none;align-items:center;gap:3px}
+    .altro-row .altro-input{display:block;flex:1;margin-top:0}
+    .altro-back{min-width:28px;min-height:28px;border-radius:var(--r-md);border:1px solid #7850a0;background:rgba(120,80,160,.10);color:#5a2090;font-size:.85rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
+    .altro-back:hover{background:rgba(120,80,160,.22)}
+    td[data-altro="1"] .altro-row{display:flex}
+    td[data-altro="1"] .cell-sel{display:none}
     .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
 
 
@@ -416,8 +420,10 @@
           <div class="legend" aria-label="Legenda">
             <span class="chip sp">Pranzo</span>
             <span class="chip sc">Cena</span>
-            <span class="chip sb">Pranzo e cena</span>
-            <span class="chip st">P + C 📞</span>
+            <span class="chip sb">Pranzo + Cena</span>
+            <span class="chip sr">P 📞</span>
+            <span class="chip sc">C 📞</span>
+            <span class="chip st">P+C 📞</span>
             <span class="chip sd">Dayoff</span>
           </div>
         </div>
@@ -431,7 +437,7 @@
       <div class="fld"><label>Nome</label><input type="text" class="emp-name" maxlength="60" placeholder="Es. Mario Rossi" required></div>
       <div class="fld"><label>Turno base</label>
         <select class="emp-shift">
-          <option>Pranzo</option><option>Cena</option><option>Pranzo e cena</option><option>Dayoff</option>
+          <option>Pranzo</option><option>Cena</option><option>Pranzo + Cena</option><option>P 📞</option><option>C 📞</option><option>P+C 📞</option><option>Dayoff</option><option>Altro</option>
         </select>
       </div>
       <button type="button" class="row-rem" aria-label="Rimuovi dipendente">✕</button>
@@ -440,9 +446,9 @@
 
   <script>
   (() => {
-    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','P + C 📞','Dayoff','Altro'];
+    const SHIFTS  = ['Pranzo','Cena','Pranzo + Cena','P 📞','C 📞','P+C 📞','Dayoff','Altro'];
     const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'P + C 📞':'st', 'Dayoff':'sd', 'Altro':'sa' };
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo + Cena':'sb', 'P 📞':'sr', 'C 📞':'sc', 'P+C 📞':'st', 'Dayoff':'sd', 'Altro':'sa' };
 
     let savedScheduleId = null;
     let getLivePayload   = null;  // set by renderTable, reads live cell values
@@ -576,7 +582,7 @@
       return s;
     };
     const applyShiftCls = el => {
-      el.classList.remove('sp','sc','sb','sd','sa','sr');
+      el.classList.remove('sp','sc','sb','sd','sa','sr','st');
       el.classList.add(CLS[el.value] || 'sd');
     };
 
@@ -743,8 +749,29 @@
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
           });
           sel._prevVal = val;
+          // Riga "Altro": input + pulsante per tornare al select
+          const altroRow = document.createElement('div');
+          altroRow.className = 'altro-row';
+          const backBtn = document.createElement('button');
+          backBtn.type = 'button';
+          backBtn.className = 'altro-back';
+          backBtn.title = 'Torna alla lista turni';
+          backBtn.textContent = '↩';
+          backBtn.addEventListener('click', async () => {
+            if (!await requireUnlock()) return;
+            sel.value = 'Pranzo';
+            sel.className = 'cell-sel ' + (CLS['Pranzo'] || 'sd');
+            delete td.dataset.altro;
+            sel.dataset.note = '';
+            altroInp.value = '';
+            recalc();
+            recalcCols();
+            if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
+          });
+          altroRow.appendChild(altroInp);
+          altroRow.appendChild(backBtn);
           wrap.appendChild(sel);
-          wrap.appendChild(altroInp);
+          wrap.appendChild(altroRow);
           selects.push(sel);
           colSelects[di].push(sel);
           if (!empSelectsMap[emp.name]) empSelectsMap[emp.name] = {};
@@ -758,7 +785,7 @@
         const recalc = () => {
           let p = 0, c = 0;
           selects.forEach(s => {
-            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena') p++;
+            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena' || s.value === 'Pranzo + Cena' || s.value === 'P 📞' || s.value === 'P+C 📞') p++;
             if (s.value === 'Cena'   || s.value === 'Pranzo e cena') c++;
           });
           lCell.textContent = p; dCell.textContent = c;
@@ -783,7 +810,7 @@
         dates.forEach((d, di) => {
           let p = 0, c = 0;
           colSelects[di].forEach(s => {
-            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena') p++;
+            if (s.value === 'Pranzo' || s.value === 'Pranzo e cena' || s.value === 'Pranzo + Cena' || s.value === 'P 📞' || s.value === 'P+C 📞') p++;
             if (s.value === 'Cena'   || s.value === 'Pranzo e cena') c++;
           });
           footCells[di].innerHTML = (p || c)
@@ -997,7 +1024,7 @@
         'CALSCALE:GREGORIAN','METHOD:PUBLISH',
       ];
       Object.entries(shifts).forEach(([date, type]) => {
-        const effectiveType = (typeof type==='string' && type.startsWith('Altro')) ? 'Dayoff' : type;
+        const effectiveType = (typeof type==='string' && type.startsWith('Altro')) ? 'Dayoff' : (['P 📞','C 📞','P+C 📞'].includes(type) ? 'Pranzo e cena' : type);
         if (effectiveType === 'Dayoff' || !ICS_TIMES[effectiveType]) return;
         type = effectiveType;
         const d = date.replace(/-/g,'');
