@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v0.2.5 -->
+<!DOCTYPE html><!-- v2.1 -->
 <html lang="it" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -74,11 +74,12 @@
     .sheet-title h3{font-size:var(--t-lg);margin-bottom:.2rem}
     .schedule-table{min-width:1040px}
     .schedule-table th,.schedule-table td{border-right:1px solid var(--div);border-bottom:1px solid var(--div);padding:var(--sp3);text-align:left;vertical-align:middle}
-    .schedule-table thead th{position:sticky;top:0;background:var(--off);z-index:2;font-size:var(--t-sm);white-space:nowrap}
+    .schedule-table thead th{position:sticky;top:0;background:var(--off);z-index:2;font-size:var(--t-sm);white-space:nowrap;text-transform:uppercase;font-weight:700;letter-spacing:.03em}
     .schedule-table thead th:first-child{position:sticky;left:0;z-index:3}
-    .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word}
+    .schedule-table tbody th{position:sticky;left:0;background:var(--surf2);z-index:1;min-width:170px;max-width:200px;word-break:break-word;text-transform:uppercase;font-weight:700;letter-spacing:.02em}
     .num{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;min-width:72px}
     .cell-sel{
+      text-transform:uppercase;letter-spacing:.04em;
       display:block;width:100%;min-height:34px;border-radius:var(--r-md);
       border:none;padding:0 var(--sp2);font-weight:700;font-size:var(--t-sm);
       cursor:pointer;text-align:center;text-align-last:center;
@@ -203,6 +204,7 @@
       .sd{color:#777 !important}
       .sa{color:#5a2090 !important}
       .sr{color:#b05800 !important}
+      .st{color:#006494 !important}
     }
 
 
@@ -250,6 +252,7 @@
     /* Altro shift */
     .sa{background:rgba(120,80,160,.12);color:#7850a0}
     .sr{background:rgba(210,120,0,.13);color:#b05800}
+    .st{background:rgba(0,100,148,.13);color:#006494}
     .altro-input{display:none;margin-top:2px;width:100%;min-height:34px;border-radius:var(--r-md);border:1.5px solid #7850a0;background:rgba(120,80,160,.07);padding:0 var(--sp3);font:inherit;font-size:var(--t-sm);font-weight:700;color:#5a2090}
     .altro-input:focus{outline:2px solid #7850a0;outline-offset:2px}
 
@@ -414,6 +417,7 @@
             <span class="chip sp">Pranzo</span>
             <span class="chip sc">Cena</span>
             <span class="chip sb">Pranzo e cena</span>
+            <span class="chip st">P + C 📞</span>
             <span class="chip sd">Dayoff</span>
           </div>
         </div>
@@ -436,9 +440,9 @@
 
   <script>
   (() => {
-    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','Dayoff','Altro','P 📞','C 📞'];
+    const SHIFTS  = ['Pranzo','Cena','Pranzo e cena','P + C 📞','Dayoff','Altro'];
     const DAYS_IT = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'Dayoff':'sd', 'Altro':'sa', 'P 📞':'sr', 'C 📞':'sr' };
+    const CLS     = { 'Pranzo':'sp', 'Cena':'sc', 'Pranzo e cena':'sb', 'P + C 📞':'st', 'Dayoff':'sd', 'Altro':'sa' };
 
     let savedScheduleId = null;
     let getLivePayload   = null;  // set by renderTable, reads live cell values
@@ -733,7 +737,7 @@
             const a = v === 'Altro';
             sel.style.display = a ? 'none' : 'block';
             altroInp.style.display = a ? 'block' : 'none';
-            td.dataset.altro = a ? '1' : '';
+            if (a) { td.dataset.altro = '1'; } else { delete td.dataset.altro; }
             if (!a) { sel.dataset.note = ''; altroInp.value = ''; }
             applyShiftCls(sel); recalc(); recalcCols();
             if (savedScheduleId && sel.dataset.sid) await pushShift(sel);
@@ -884,7 +888,7 @@
           const delBtn  = document.createElement('button'); delBtn.className='btn btn-s'; delBtn.textContent='Elimina'; delBtn.style.minHeight='36px';
           const shareBtn = document.createElement('button'); shareBtn.className='btn btn-s'; shareBtn.textContent='🔗'; shareBtn.title='Copia link'; shareBtn.style.minHeight='36px';
           shareBtn.addEventListener('click', () => {
-            const url = `${window.location.href.split("?")[0]}?id=${item.id}`;
+            const url = `${window.location.origin}/turni?id=${item.id}`;
             navigator.clipboard.writeText(url).then(()=>{ shareBtn.textContent='✓'; setTimeout(()=>shareBtn.textContent='🔗',2000); });
           });
           openBtn.addEventListener('click', () => loadSchedule(item.id));
@@ -936,7 +940,6 @@
     /* ── API: delete schedule ── */
     const deleteSchedule = async id => {
       if (!confirm('Eliminare questo turno da D1?')) return;
-      if (!await requireUnlock()) return;
       try {
         const r = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
         if (!r.ok) throw new Error((await r.json()).error || 'Errore eliminazione.');
@@ -962,7 +965,7 @@
     const shareArea = $('shareArea');
 
     const showShareLink = (id) => {
-      const url = `${window.location.href.split("?")[0]}?id=${id}`;
+      const url = `${window.location.origin}/turni?id=${id}`;
       shareArea.innerHTML = `
         <div class="share-box">
           <div class="share-label">🔗 Link da mandare ai dipendenti</div>
@@ -994,7 +997,7 @@
         'CALSCALE:GREGORIAN','METHOD:PUBLISH',
       ];
       Object.entries(shifts).forEach(([date, type]) => {
-        const effectiveType = (typeof type==='string' && (type.startsWith('Altro')||type==='P 📞'||type==='C 📞')) ? 'Dayoff' : type;
+        const effectiveType = (typeof type==='string' && type.startsWith('Altro')) ? 'Dayoff' : type;
         if (effectiveType === 'Dayoff' || !ICS_TIMES[effectiveType]) return;
         type = effectiveType;
         const d = date.replace(/-/g,'');
@@ -1014,7 +1017,7 @@
       });
       // Aggiungi evento speciale con link alla tabella online (solo se savedScheduleId disponibile)
       if (savedScheduleId) {
-        const pageUrl = `${window.location.href.split("?")[0]}?id=${savedScheduleId}`;
+        const pageUrl = `${window.location.origin}/turni?id=${savedScheduleId}`;
         lines.push(
           'BEGIN:VEVENT',
           `DTSTART;VALUE=DATE:${Object.keys(shifts)[0].replace(/-/g,'')}`,
@@ -1043,9 +1046,8 @@
     };
 
     /* ── Event listeners ── */
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', e => {
       e.preventDefault();
-      if (!await requireUnlock()) return;
       const payload = buildPayload(); if (!payload) return;
       savedScheduleId = null; shiftIdMap = {};
       renderTable(payload);
@@ -1065,9 +1067,6 @@
 
     resetEmps();
     fetchSaved();
-    // Auto-load schedule from URL param ?id=xxx
-    const _urlId = new URLSearchParams(window.location.search).get('id');
-    if (_urlId) loadSchedule(_urlId);
   /* ── Password modal events ── */
   document.getElementById('pwdConfirm').addEventListener('click', () => {
     const val = document.getElementById('pwdInput').value;
