@@ -798,8 +798,9 @@
           let p = 0, c = 0, rp = 0, rc = 0;
           colSelects[di].forEach(s => {
             const v = s.value;
-            if (v === 'Pranzo' || v === 'Pranzo + Cena') p++;
+            if (v === 'Pranzo') p++;
             else if (v === 'Cena') c++;
+            else if (v === 'Pranzo + Cena') { p++; c++; };
             else if (v === 'P 📞') rp++;
             else if (v === 'C 📞') rc++;
             else if (v === 'P+C 📞') { rp++; rc++; }
