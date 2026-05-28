@@ -304,6 +304,25 @@
 
     @media(max-width:1024px){.layout{grid-template-columns:1fr}}
     @media(max-width:640px){.dgrid,.er{grid-template-columns:1fr}.schedule-table{min-width:760px}.pi{padding:var(--sp4)}}
+
+        /* ── Dark mode overrides ── */
+    [data-theme="dark"] .cell-sel{
+      border:1px solid rgba(255,255,255,0.35) !important;
+    }
+    [data-theme="dark"] .btn-s,
+    [data-theme="dark"] .fs-btn,
+    [data-theme="dark"] .lock-btn,
+    [data-theme="dark"] .a11y-btn,
+    [data-theme="dark"] .ics-btn,
+    [data-theme="dark"] .theme-btn{
+      border-color:rgba(255,255,255,0.35) !important;
+    }
+    [data-theme="dark"] .altro-input{
+      background:rgba(80,70,50,0.50) !important;
+      border-color:rgba(255,255,255,0.35) !important;
+      color:#c9a8f0 !important;
+    }
+
   </style>
 </head>
 <body>
