@@ -19,17 +19,13 @@
       --sh-sm:0 1px 2px rgba(40,37,29,.06);--sh-md:0 8px 24px rgba(40,37,29,.08);
       --font:'Satoshi',system-ui,sans-serif;
     }
-    [data-theme="dark"] {
-  --bg:    #222018;
-  --surf:  #282519;
-  --surf2: #2e2b1e;
-  --off:   #353220;
-  --bdr:   #46432e;
-  --div:   #3c3926;
-
-  --tx:    #f0ede4;
-  --txm:   #c2bfb5;
-  --txi:   #1a1810;}
+    [data-theme="dark"]{
+      --bg:#171614;--surf:#1c1b19;--surf2:#201f1d;--off:#262421;--bdr:#393836;--div:#302f2d;
+      --tx:#e7e4dd;--txm:#b5b2ab;--txi:#171614;
+      --pri:#4f98a3;--prih:#75b4be;--prhl:#293538;
+      --ok:#7db857;--warn:#d2845f;--err:#d776b3;
+      --sh-sm:0 1px 2px rgba(0,0,0,.24);--sh-md:0 12px 32px rgba(0,0,0,.34);
+    }
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;font-family:var(--font);font-size:var(--t-base);line-height:1.6;color:var(--tx);background:linear-gradient(160deg,var(--bg) 0%,var(--off) 100%)}
     button,input,select{font:inherit;color:inherit}table{border-collapse:collapse;width:100%}button{cursor:pointer}
@@ -768,8 +764,7 @@
           let p = 0, c = 0, rp = 0, rc = 0;
           selects.forEach(s => {
             const v = s.value;
-            if (v === 'Pranzo') p++;
-            else if (v === 'Pranzo + Cena') { p++; c++; }
+            if (v === 'Pranzo' || v === 'Pranzo + Cena') p++;
             else if (v === 'Cena') c++;
             else if (v === 'P 📞') rp++;
             else if (v === 'C 📞') rc++;
@@ -799,9 +794,8 @@
           let p = 0, c = 0, rp = 0, rc = 0;
           colSelects[di].forEach(s => {
             const v = s.value;
-            if (v === 'Pranzo') p++;
+            if (v === 'Pranzo' || v === 'Pranzo + Cena') p++;
             else if (v === 'Cena') c++;
-            else if (v === 'Pranzo + Cena') { p++; c++; };
             else if (v === 'P 📞') rp++;
             else if (v === 'C 📞') rc++;
             else if (v === 'P+C 📞') { rp++; rc++; }
@@ -962,7 +956,6 @@
 
     /* ── API: delete schedule ── */
     const deleteSchedule = async id => {
-      if (!await requireUnlock()) return;
       if (!confirm('Eliminare questo turno da D1?')) return;
       try {
         const r = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
