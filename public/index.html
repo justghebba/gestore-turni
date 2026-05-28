@@ -20,8 +20,8 @@
       --font:'Satoshi',system-ui,sans-serif;
     }
     [data-theme="dark"]{
-      --bg:#171614;--surf:#1c1b19;--surf2:#201f1d;--off:#262421;--bdr:#393836;--div:#302f2d;
-      --tx:#e7e4dd;--txm:#b5b2ab;--txi:#171614;
+      --bg:#2e2b22;--surf:#353228;--surf2:#3b382d;--off:#433f32;--bdr:#5a5645;--div:#4e4b3c;
+      --tx:#f5f2e8;--txm:#ccc9be;--txi:#1a1810;
       --pri:#4f98a3;--prih:#75b4be;--prhl:#293538;
       --ok:#7db857;--warn:#d2845f;--err:#d776b3;
       --sh-sm:0 1px 2px rgba(0,0,0,.24);--sh-md:0 12px 32px rgba(0,0,0,.34);
@@ -764,8 +764,9 @@
           let p = 0, c = 0, rp = 0, rc = 0;
           selects.forEach(s => {
             const v = s.value;
-            if (v === 'Pranzo' || v === 'Pranzo + Cena') p++;
+            if (v === 'Pranzo') p++;
             else if (v === 'Cena') c++;
+            else if (v === 'Pranzo + Cena') { p++; c++; }
             else if (v === 'P 📞') rp++;
             else if (v === 'C 📞') rc++;
             else if (v === 'P+C 📞') { rp++; rc++; }
@@ -794,8 +795,9 @@
           let p = 0, c = 0, rp = 0, rc = 0;
           colSelects[di].forEach(s => {
             const v = s.value;
-            if (v === 'Pranzo' || v === 'Pranzo + Cena') p++;
+            if (v === 'Pranzo') p++;
             else if (v === 'Cena') c++;
+            else if (v === 'Pranzo + Cena') { p++; c++; }
             else if (v === 'P 📞') rp++;
             else if (v === 'C 📞') rc++;
             else if (v === 'P+C 📞') { rp++; rc++; }
